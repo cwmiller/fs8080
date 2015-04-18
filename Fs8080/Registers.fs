@@ -128,8 +128,19 @@ let setP (value: byte) state =
     then { state with FLAGS = state.FLAGS ||| FlagMask.P; }
     else { state with FLAGS = state.FLAGS &&& ~~~FlagMask.P; }
 
+// Set A flag based on value
+let setA (value: byte) state =
+    if (value &&& 0x0Fuy) = 0uy
+    then { state with FLAGS = state.FLAGS ||| FlagMask.A; }
+    else { state with FLAGS = state.FLAGS &&& ~~~FlagMask.A; }
+
 // Set S, Z, and P flags based on value
 let setSZP (value: byte) state =
     setS value state
     |> setZ value
     |> setP value
+
+// Set S, Z, A, and P flags based on value
+let setSZAP (value: byte) state =
+    setSZP value state
+    |> setA value

@@ -22,6 +22,11 @@ type Instruction =
     | RAL
     | RAR
     | SHLD
+    | DAA
+    | LHLD
+    | CMA
+    | STA
+    | INR_M
     | MOV_R_R of Register8 * Register8
     | MOV_R_M of Register8
     | MOV_M_R of Register8
@@ -64,7 +69,25 @@ let decode byte =
         | 0x1Fuy -> Instruction.RAR             // Rotate A right through carry
         | 0x20uy -> Instruction.NOP             // Unspecified
         | 0x21uy -> Instruction.LXI(HL)         // Load 16bit value into HL
-        | 0x22uy -> Instruction.SHLD            // Load 16bit value from address into HL
+        | 0x22uy -> Instruction.SHLD            // Copy 16bit value from HL into memory address
+        | 0x23uy -> Instruction.INX(HL)         // Increment value in HL by 1
+        | 0x24uy -> Instruction.INR(H)          // Increment value in H by 1
+        | 0x25uy -> Instruction.DCR(H)          // Decrement value in H by 1
+        | 0x26uy -> Instruction.MVI(H)          // Load 8but value into H
+        | 0x27uy -> Instruction.DAA             // Not sure
+        | 0x28uy -> Instruction.NOP             // Unspecified
+        | 0x29uy -> Instruction.DAD(HL)         // Add HL to HL
+        | 0x2auy -> Instruction.LHLD            // Load 16bit value from memory into HL
+        | 0x2buy -> Instruction.DCX(HL)         // Decrement value in HL by 1
+        | 0x2cuy -> Instruction.INR(L)          // Increase value in L by 1
+        | 0x2duy -> Instruction.DCR(L)          // Decrease value in L by 1
+        | 0x2euy -> Instruction.MVI(L)          // Load 8bit value into L
+        | 0x2fuy -> Instruction.CMA             // Set A to NOT A
+        | 0x30uy -> Instruction.NOP             // Unspecified
+        | 0x31uy -> Instruction.LXI(SP)         // Load 16bit value into SP
+        | 0x32uy -> Instruction.STA             // Copy value from A to memory address
+        | 0x33uy -> Instruction.INX(SP)         // Increment value in SP by 1
+        | 0x34uy -> Instruction.INR_M           // Increment value in memory address in HL
 
         | 0x40uy -> Instruction.MOV_R_R(B, B)   // Copy 8bit value from B to B
         | 0x41uy -> Instruction.MOV_R_R(B, C)   // Copy 8bit value from C to B
@@ -175,11 +198,7 @@ let inr register state =
     let value = (get8 register state) + 1uy
             
     set8 register value state
-    |> setSZP value
-    |> fun state ->
-        if (value &&& 0x0Fuy) = 0uy
-        then { state with FLAGS = state.FLAGS ||| FlagMask.A; }
-        else { state with FLAGS = state.FLAGS &&& ~~~FlagMask.A; }
+    |> setSZAP value
     |> incPC 1us
     |> incWC 5
 
@@ -301,15 +320,59 @@ let rar state =
     |> incWC 4  
 
 
-// Load 16bit value from address into HL
+// Load 16bit value from HL into memory address
 let shld state memory =
-    let high = uint16 (fetch (state.PC + 1us) memory)
-    let low = uint16 (fetch (state.PC + 2us) memory)
-    let value = (high <<< 8) ||| low
+    let memChanges = [
+        (state.PC + 1us, get8 L state);
+        (state.PC + 2us, get8 H state)
+    ]
 
-    set16 HL value state
+    (incPC 3us state |> incWC 16, memChanges)
+
+
+// Not sure what DAA is.
+// According to http://pastraiser.com/cpu/i8080/i8080_opcodes.html it alters all FLAGS,
+// but I can't find any details on it.
+let daa state =
+    state
+    |> incPC 1us
+    |> incWC 4
+
+// Load 16bit value from memory into HL
+let lhld state memory =
+    set8 L (fetch (state.PC + 1us) memory) state
+    |> set8 H (fetch (state.PC + 2us) memory)
     |> incPC 3us
     |> incWC 16
+
+
+// Set A to NOT A
+let cma state =
+    { state with A = ~~~state.A; }
+    |> incPC 1us
+    |> incWC 4
+
+// Copy value from A to memory address
+let sta state memory =
+    let high = uint16 (fetch (state.PC + 2us) memory)
+    let low = uint16 (fetch (state.PC + 1us) memory)
+    let addr = (high <<< 8) ||| low
+    let value = get8 A state
+
+    (incPC 3us state |> incWC 13, [(addr, value)])
+
+
+// Increment value in memory pointed to by HL 
+let inr_m state memory =
+    let addr = state.PC + 1us
+    let value = (fetch addr memory) + 1uy
+            
+    let newState =
+        setSZAP value state
+        |> incPC 1us
+        |> incWC 10
+
+    (newState, [(addr, value)])
 
 
 // Copy 8bit value from register to register
@@ -360,7 +423,12 @@ let execute instruction state memory =
         | RRC -> (rrc state, [])
         | RAL -> (ral state, [])
         | RAR -> (rar state, [])
-        | SHLD -> (shld state memory, [])
+        | SHLD -> (shld state memory)
+        | DAA -> (daa state, [])
+        | LHLD -> (lhld state memory, [])
+        | CMA -> (cma state, [])
+        | STA -> (sta state memory)
+        | INR_M -> (inr_m state memory)
         | MOV_R_R(dest, src) -> (mov_r_r dest src state, [])
         | MOV_R_M(reg) -> (mov_r_m reg state memory, [])
         | MOV_M_R(reg) -> mov_m_r reg state
