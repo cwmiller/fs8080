@@ -1,5 +1,6 @@
 ﻿module Fs8080.Instructions
 
+open Fs8080.Types
 open Fs8080.Registers
 open Fs8080.Memory
 
@@ -170,10 +171,10 @@ let nop state =
 
 // Loads 16 bit value into register BC, DE, HL, or SP
 let lxi register state memory =
-    let high = uint16 (fetch (state.PC + 1us) memory)
-    let low = uint16 (fetch (state.PC + 2us) memory)
+    let high = fetch (state.PC + 1us) memory
+    let low = fetch (state.PC + 2us) memory
 
-    set16 register (high <<< 8 ||| low) state
+    set16 register { High = high; Low = low } state
     |> incPC 3us
     |> incWC 10
 
@@ -264,7 +265,7 @@ let ldax register state memory =
 // Decrement 16bit register
 let dcx register state =
     get16 register state
-    |> fun value -> set16 register (value-1us) state
+    |> fun value -> set16 register (value - 1us) state
     |> incPC 1us
     |> incWC 5
 
@@ -323,8 +324,8 @@ let rar state =
 // Load 16bit value from HL into memory address
 let shld state memory =
     let memChanges = [
-        (state.PC + 1us, get8 L state);
-        (state.PC + 2us, get8 H state)
+        ((state.PC + 1us), get8 L state);
+        ((state.PC + 2us), get8 H state)
     ]
 
     (incPC 3us state |> incWC 16, memChanges)
@@ -354,9 +355,9 @@ let cma state =
 
 // Copy value from A to memory address
 let sta state memory =
-    let high = uint16 (fetch (state.PC + 2us) memory)
-    let low = uint16 (fetch (state.PC + 1us) memory)
-    let addr = (high <<< 8) ||| low
+    let high = fetch (state.PC + 2us) memory
+    let low = fetch (state.PC + 1us) memory
+    let addr = { High = high; Low = low; }
     let value = get8 A state
 
     (incPC 3us state |> incWC 13, [(addr, value)])

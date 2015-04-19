@@ -1,5 +1,7 @@
 ﻿module Fs8080.Registers
 
+open Fs8080.Types
+
 // List of 8bit registers
 type Register8 =
     | A
@@ -30,8 +32,8 @@ type State = {
     E: byte;
     H: byte;
     L: byte;
-    SP: uint16;
-    PC: uint16;
+    SP: DWord;
+    PC: DWord;
     FLAGS: byte;
 
     // Work cycles
@@ -61,10 +63,10 @@ let get8 register state =
 // Gets the value of a 16bit register
 let get16 register state = 
     match register with
-        | AF -> (uint16 state.A <<< 8) ||| (uint16 state.FLAGS)
-        | BC -> (uint16 state.B <<< 8) ||| (uint16 state.C)
-        | DE -> (uint16 state.D <<< 8) ||| (uint16 state.E)
-        | HL -> (uint16 state.H <<< 8) ||| (uint16 state.L)
+        | AF -> { High = state.A; Low = state.FLAGS }
+        | BC -> { High = state.B; Low = state.C }
+        | DE -> { High = state.D; Low = state.E }
+        | HL -> { High = state.H; Low = state.L }
         | SP -> state.SP
         | PC -> state.PC
 
@@ -80,18 +82,15 @@ let set8 register value state =
         | L -> { state with L = value }
         | FLAGS -> { state with FLAGS = value }
 
-// Gets the value of a 16bit register
-let set16 register (value: uint16) state =
-    let high = byte (value >>> 8)
-    let low = byte value
-
+// Sets the value of a 16bit register
+let set16 register (value: DWord) state =
     match register with
-        | AF -> { state with A = high; FLAGS = low; }
-        | BC -> { state with B = high; C = low; }
-        | DE -> { state with D = high; E = low; }
-        | HL -> { state with H = high; L = low; }
-        | SP -> { state with SP = (uint16 value); }
-        | PC -> { state with PC = (uint16 value); }
+        | AF -> { state with A = value.High; FLAGS = value.Low; }
+        | BC -> { state with B = value.High; C = value.Low; }
+        | DE -> { state with D = value.High; E = value.Low; }
+        | HL -> { state with H = value.High; L = value.Low; }
+        | SP -> { state with SP = value; }
+        | PC -> { state with PC = value; }
 
 // Copy the value from one 8bit register to another
 let copy8 src dest state =
@@ -99,7 +98,7 @@ let copy8 src dest state =
     |> fun value -> set8 dest value state
 
 // Increment PC register
-let incPC amt state = 
+let incPC (amt: uint16) state = 
     { state with PC = state.PC + amt }
 
 // Increment cycle counter
