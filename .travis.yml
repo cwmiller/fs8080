@@ -1,0 +1,10 @@
+language: csharp
+solution: ./Fs8080.sln
+
+install:
+  - sudo apt-get install nunit-console
+  - nuget restore ./Fs8080.sln
+
+script:
+  - xbuild ./Fs8080.sln
+  - nunit-console ./tests/Fs8080.Tests/bin/Debug/Fs8080.Tests.dll
