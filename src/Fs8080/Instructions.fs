@@ -171,8 +171,8 @@ let nop state =
 
 // Loads 16 bit value into register BC, DE, HL, or SP
 let lxi register state memory =
-    let high = fetch (state.PC + 1us) memory
-    let low = fetch (state.PC + 2us) memory
+    let high = fetch (state.PC + 2us) memory
+    let low = fetch (state.PC + 1us) memory
 
     set16 register { High = high; Low = low } state
     |> incPC 3us
@@ -220,7 +220,7 @@ let dcr register state =
 
 // Load 8bit value into register
 let mvi register state memory =
-    set8 register (fetch state.PC memory) state
+    set8 register (fetch (state.PC + 1us) memory) state
     |> incPC 2us
     |> incWC 7
 
@@ -246,7 +246,7 @@ let dad register state =
 
     set16 HL sum state
     |> fun state ->
-        if sum < existing // Set Cary flag if new value overflowed
+        if sum < existing // Set Carry flag if new value overflowed
         then { state with FLAGS = state.FLAGS ||| FlagMask.C; }         
         else { state with FLAGS = state.FLAGS &&& ~~~FlagMask.C; }
     |> incPC 1us
@@ -292,7 +292,7 @@ let ral state =
     let highbit = value >>> 7
 
     // Shift the value left and set the lowbit to the C flag
-    let shifted = (value <<< 1) ||| (state.FLAGS ||| FlagMask.C)
+    let shifted = (value <<< 1) ||| (state.FLAGS &&& FlagMask.C)
 
     set8 A shifted state
     |> fun state -> 
@@ -323,9 +323,14 @@ let rar state =
 
 // Load 16bit value from HL into memory address
 let shld state memory =
+    let address = { 
+        High = (fetch (state.PC + 2us) memory);
+        Low = (fetch (state.PC + 1us) memory);
+    }
+
     let memChanges = [
-        ((state.PC + 1us), get8 L state);
-        ((state.PC + 2us), get8 H state)
+        (address, (get8 L state));
+        ((address + 1us), (get8 H state));
     ]
 
     (incPC 3us state |> incWC 16, memChanges)
@@ -341,8 +346,13 @@ let daa state =
 
 // Load 16bit value from memory into HL
 let lhld state memory =
-    set8 L (fetch (state.PC + 1us) memory) state
-    |> set8 H (fetch (state.PC + 2us) memory)
+    let address = { 
+        High = (fetch (state.PC + 2us) memory);
+        Low = (fetch (state.PC + 1us) memory);
+    }
+
+    set8 L (fetch address memory) state
+    |> set8 H (fetch (address + 1us) memory)
     |> incPC 3us
     |> incWC 16
 
@@ -365,7 +375,7 @@ let sta state memory =
 
 // Increment value in memory pointed to by HL 
 let inr_m state memory =
-    let addr = state.PC + 1us
+    let addr = (get16 HL state)
     let value = (fetch addr memory) + 1uy
             
     let newState =
