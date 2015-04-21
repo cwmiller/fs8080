@@ -368,7 +368,7 @@ let ``MOV M, C while HL contains address 0xDEAD and C contains 0xBE should set m
     |> should equal 0xBE
 
 [<Test>]
-let HLT () =
+let ``HLT should only affect the PC and WC states`` () =
     defaultState
     |> hlt
     |> fun state -> (state.A + state.B + state.C + state.D + state.E + state.FLAGS)
