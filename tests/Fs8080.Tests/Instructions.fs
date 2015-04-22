@@ -472,3 +472,51 @@ let ``ADD B while A contains 0xAA and B contains 0xCC should set A to 0x76 and s
 
     (newState.FLAGS &&& FlagMask.C)
     |> should equal FlagMask.C
+
+[<Test>]
+let ``ADC B while A contains 0xAA, B contains 0x11, and C not set should set A to 0xBB and not set C flag`` () =
+    let newState = 
+        { defaultState with A = 0xAAuy; B = 0x11uy }
+        |> adc B
+
+    newState.A
+    |> should equal 0xBB
+
+    (newState.FLAGS &&& FlagMask.C)
+    |> should not' (equal FlagMask.C)
+
+[<Test>]
+let ``ADC B while A contains 0xAA, B contains 0xCC, and C not set should set A to 0x76 and set the C flag`` () =
+    let newState = 
+        { defaultState with A = 0xAAuy; B = 0xCCuy }
+        |> adc B
+
+    newState.A
+    |> should equal 0x76
+
+    (newState.FLAGS &&& FlagMask.C)
+    |> should equal FlagMask.C
+
+[<Test>]
+let ``ADC B while A contains 0xAA, B contains 0x11, and C is set should set A to 0xBC and not set C flag`` () =
+    let newState = 
+        { defaultState with A = 0xAAuy; B = 0x11uy; FLAGS = FlagMask.C }
+        |> adc B
+
+    newState.A
+    |> should equal 0xBC
+
+    (newState.FLAGS &&& FlagMask.C)
+    |> should not' (equal FlagMask.C)
+
+[<Test>]
+let ``ADC B while A contains 0xAA, B contains 0xCC, and C is set should set A to 0x77 and set the C flag`` () =
+    let newState = 
+        { defaultState with A = 0xAAuy; B = 0xCCuy; FLAGS = FlagMask.C }
+        |> adc B
+
+    newState.A
+    |> should equal 0x77
+
+    (newState.FLAGS &&& FlagMask.C)
+    |> should equal FlagMask.C

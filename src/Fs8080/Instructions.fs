@@ -36,9 +36,11 @@ type Instruction =
     | MOV_R_R of Register8 * Register8
     | MOV_R_M of Register8
     | MOV_M_R of Register8
+    | HLT
     | ADD of Register8
     | ADD_M
-    | HLT
+    | ADC of Register8
+    | ADC_M
 
 // Determines an instruction from its byte value
 let decode byte =
@@ -179,6 +181,13 @@ let decode byte =
         | 0x85uy -> Instruction.ADD(H)          // Increment A with value in H
         | 0x86uy -> Instruction.ADD(L)          // Increment A with value in L
         | 0x87uy -> Instruction.ADD_M           // Increment A with value in address in HL
+        | 0x88uy -> Instruction.ADC(B)          // Increment A with value in B plus Carry
+        | 0x89uy -> Instruction.ADC(C)          // Increment A with value in C plus Carry
+        | 0x8Auy -> Instruction.ADC(D)          // Increment A with value in D plus Carry
+        | 0x8Buy -> Instruction.ADC(E)          // Increment A with value in E plus Carry
+        | 0x8Cuy -> Instruction.ADC(H)          // Increment A with value in H plus Carry
+        | 0x8Duy -> Instruction.ADC(L)          // Increment A with value in L plus Carry
+        | 0x8Euy -> Instruction.ADC_M           // Increment A with value in address in HL plus Carry
 
         | _ -> raise (UnknownInstruction(byte))
 
@@ -507,6 +516,36 @@ let add_m state memory =
     |> incPC 1us
     |> incWC 7
 
+// Increment A by register and Carry
+let adc register state =
+    let existing = get8 A state
+    let sum = 
+        existing 
+        + (get8 register state) 
+        + (state.FLAGS &&& FlagMask.C)
+
+    state
+    |> set8 A sum
+    |> setSZAP sum
+    |> setC existing sum
+    |> incPC 1us
+    |> incWC 4
+
+// Increment A by value in address in HL and Carry
+let adc_m state memory =
+    let value = fetch (get16 HL state) memory
+    let existing = get8 A state
+    let sum = 
+        existing 
+        + value
+        + (state.FLAGS &&& FlagMask.C)
+
+    state
+    |> set8 A sum
+    |> setSZAP sum
+    |> setC existing sum
+    |> incPC 1us
+    |> incWC 7
 
 // Carries out the given instruction
 // Returns the post-execution state along with a list of changes to perform on memory
@@ -543,6 +582,8 @@ let execute instruction state memory =
         | HLT -> (hlt state, [])
         | ADD(reg) -> (add reg state, [])
         | ADD_M -> (add_m state memory, [])
+        | ADC(reg) -> (adc reg state, [])
+        | ADC_M -> (adc_m state memory, [])
 
 // Applies memory changes to the mutable memory source
 let applyChanges memory (state, changes) =
