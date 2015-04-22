@@ -40,3 +40,21 @@ type DWord =
         if BitConverter.IsLittleEndian
         then { High = (Array.get bytes 1); Low = (Array.get bytes 0); }
         else { High = (Array.get bytes 0); Low = (Array.get bytes 1); }
+
+// Represents the CPU's current state
+type State = {
+    // Registers
+    A: byte;
+    B: byte;
+    C: byte;
+    D: byte;
+    E: byte;
+    H: byte;
+    L: byte;
+    SP: DWord;
+    PC: DWord;
+    FLAGS: byte;
+
+    // Work cycles
+    WC: int;
+}

@@ -22,24 +22,6 @@ type Register16 =
     | SP
     | PC
 
-// Represents the CPU's current state
-type State = {
-    // Registers
-    A: byte;
-    B: byte;
-    C: byte;
-    D: byte;
-    E: byte;
-    H: byte;
-    L: byte;
-    SP: DWord;
-    PC: DWord;
-    FLAGS: byte;
-
-    // Work cycles
-    WC: int;
-}
-
 // Bitmasks used for setting/getting bits on FLAGS register
 type FlagMask = 
     static member S = 0x80uy
@@ -106,19 +88,19 @@ let incWC amt state =
     { state with WC = state.WC + amt }
 
 // Set S flag based on value
-let setS (value: byte) state =
+let flagS (value: byte) state =
     if (value &&& 0x80uy) > 0uy
     then { state with FLAGS = state.FLAGS ||| FlagMask.S }
     else { state with FLAGS = state.FLAGS &&& ~~~FlagMask.S }
 
 // Set Z flag based on value
-let setZ (value: byte) state = 
+let flagZ (value: byte) state = 
     if value = 0uy 
     then { state with FLAGS = state.FLAGS ||| FlagMask.Z; }
     else { state with FLAGS = state.FLAGS &&& ~~~FlagMask.Z; }
 
 // Set P flag based on value
-let setP (value: byte) state =
+let flagP (value: byte) state =
     let cnt = 
         [0..7]
         |> List.fold (fun acc idx -> acc + (value >>> idx) &&& 0x1uy) 0uy
@@ -128,24 +110,20 @@ let setP (value: byte) state =
     else { state with FLAGS = state.FLAGS &&& ~~~FlagMask.P; }
 
 // Set A flag based on value
-let setA (value: byte) state =
+let flagA (value: byte) state =
     if (value &&& 0x0Fuy) = 0uy
     then { state with FLAGS = state.FLAGS ||| FlagMask.A; }
     else { state with FLAGS = state.FLAGS &&& ~~~FlagMask.A; }
 
 // Set C flag based on addition result (flag is set is addition overflows)
-let setC (previousValue: byte) (value: byte) state =
+let flagC (previousValue: byte) (value: byte) state =
     if (value < previousValue)
     then { state with FLAGS = state.FLAGS ||| FlagMask.C; }
     else { state with FLAGS = state.FLAGS &&& ~~~FlagMask.C; }
 
-// Set S, Z, and P flags based on value
-let setSZP (value: byte) state =
-    setS value state
-    |> setZ value
-    |> setP value
-
 // Set S, Z, A, and P flags based on value
 let setSZAP (value: byte) state =
-    setSZP value state
-    |> setA value
+    flagS value state
+    |> flagZ value
+    |> flagP value
+    |> flagA value

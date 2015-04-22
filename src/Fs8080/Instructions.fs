@@ -205,10 +205,12 @@ let nop state =
 
 // Loads 16 bit value into register BC, DE, HL, or SP
 let lxi register state memory =
-    let high = fetch (state.PC + 2us) memory
-    let low = fetch (state.PC + 1us) memory
+    let address = {
+        High = fetch (state.PC + 2us) memory;
+        Low = fetch (state.PC + 1us) memory;
+    }
 
-    set16 register { High = high; Low = low } state
+    set16 register address state
     |> incPC 3us
     |> incWC 10
 
@@ -216,8 +218,8 @@ let lxi register state memory =
 // Copy 8bit value from A into address in BC or DE
 let stax register state =
     let value = get8 A state
-    let addr = get16 register state
-    (incPC 1us state |> incWC 7, [(addr, value)])
+    let address = get16 register state
+    (incPC 1us state |> incWC 7, [(address, value)])
 
    
 // Increment value in 16bit register 
@@ -286,7 +288,7 @@ let dad register state =
 // Load value from address in 16bit register to A
 let ldax register state memory =
     get16 register state
-    |> fun addr -> fetch addr memory
+    |> fun address -> fetch address memory
     |> fun value -> set8 A value state
     |> incPC 1us
     |> incWC 7
@@ -363,15 +365,16 @@ let shld state memory =
         ((address + 1us), (get8 H state));
     ]
 
-    (incPC 3us state |> incWC 16, memChanges)
+    incPC 3us state
+    |> incWC 16
+    |> fun state -> (state, memChanges)
 
 
 // Not sure what DAA is.
 // According to http://pastraiser.com/cpu/i8080/i8080_opcodes.html it alters all FLAGS,
 // but I can't find any details on it.
 let daa state =
-    state
-    |> incPC 1us
+    incPC 1us state
     |> incWC 4
 
 // Load 16bit value from memory into HL
@@ -395,34 +398,38 @@ let cma state =
 
 // Copy value from A to memory address
 let sta state memory =
-    let high = fetch (state.PC + 2us) memory
-    let low = fetch (state.PC + 1us) memory
-    let addr = { High = high; Low = low; }
+    let address = {
+        High = fetch (state.PC + 2us) memory;
+        Low = fetch (state.PC + 1us) memory
+    }
+
     let value = get8 A state
 
-    (incPC 3us state |> incWC 13, [(addr, value)])
+    incPC 3us state 
+    |> incWC 13
+    |> fun state -> (state, [(address, value)])
 
 
 // Increment value in memory pointed to by HL 
 let inr_m state memory =
-    let addr = (get16 HL state)
-    let value = (fetch addr memory) + 1uy
+    let address = (get16 HL state)
+    let value = (fetch address memory) + 1uy
             
     setSZAP value state
     |> incPC 1us
     |> incWC 10
-    |> fun state -> (state, [(addr, value)])
+    |> fun state -> (state, [(address, value)])
 
 
 // Decrement value in memory pointed to by HL 
 let dcr_m state memory =
-    let addr = (get16 HL state)
-    let value = (fetch addr memory) - 1uy
+    let address = (get16 HL state)
+    let value = (fetch address memory) - 1uy
             
     setSZAP value state
     |> incPC 1us
     |> incWC 10
-    |> fun state -> (state, [(addr, value)])
+    |> fun state -> (state, [(address, value)])
     
 
 // Copy 8bit value into memory address in HL
@@ -471,7 +478,7 @@ let mov_r_r dest src state =
 let mov_r_m dest state memory =
     let value = 
         get16 HL state
-        |> fun(addr) -> fetch addr memory
+        |> fun(address) -> fetch address memory
 
     set8 dest value state
     |> incPC 1us
@@ -480,9 +487,9 @@ let mov_r_m dest state memory =
 
 // Copy 8bit value from register into address HL
 let mov_m_r register state =
-    let addr = get16 HL state
+    let address = get16 HL state
     let value = get8 register state
-    (incPC 1us state|> incWC 7, [(addr, value)])
+    (incPC 1us state |> incWC 7, [(address, value)])
 
    
 // Halt CPU
@@ -495,10 +502,9 @@ let add register state =
     let existing = get8 A state
     let sum = existing + (get8 register state)
 
-    state
-    |> set8 A sum
+    set8 A sum state
     |> setSZAP sum
-    |> setC existing sum
+    |> flagC existing sum
     |> incPC 1us
     |> incWC 4
 
@@ -509,25 +515,20 @@ let add_m state memory =
     let existing = get8 A state
     let sum = existing + value
 
-    state
-    |> set8 A sum
+    set8 A sum state
     |> setSZAP sum
-    |> setC existing sum
+    |> flagC existing sum
     |> incPC 1us
     |> incWC 7
 
 // Increment A by register and Carry
 let adc register state =
     let existing = get8 A state
-    let sum = 
-        existing 
-        + (get8 register state) 
-        + (state.FLAGS &&& FlagMask.C)
+    let sum = existing + (get8 register state) + (state.FLAGS &&& FlagMask.C)
 
-    state
-    |> set8 A sum
+    set8 A sum state
     |> setSZAP sum
-    |> setC existing sum
+    |> flagC existing sum
     |> incPC 1us
     |> incWC 4
 
@@ -535,65 +536,10 @@ let adc register state =
 let adc_m state memory =
     let value = fetch (get16 HL state) memory
     let existing = get8 A state
-    let sum = 
-        existing 
-        + value
-        + (state.FLAGS &&& FlagMask.C)
+    let sum = existing + value + (state.FLAGS &&& FlagMask.C)
 
-    state
-    |> set8 A sum
+    set8 A sum state
     |> setSZAP sum
-    |> setC existing sum
+    |> flagC existing sum
     |> incPC 1us
     |> incWC 7
-
-// Carries out the given instruction
-// Returns the post-execution state along with a list of changes to perform on memory
-let execute instruction state memory =
-    match instruction with
-        | NOP -> (nop state, [])
-        | LXI(reg) -> (lxi reg state memory, [])
-        | STAX(reg) -> stax reg state
-        | INX(reg) -> (inx reg state, [])
-        | INR(reg) -> (inr reg state, [])
-        | DCR(reg) -> (dcr reg state, [])
-        | MVI(reg) -> (mvi reg state memory, [])
-        | RLC -> (rlc state, [])
-        | DAD(reg) -> (dad reg state, [])
-        | LDAX(reg) -> (ldax reg state memory, [])
-        | DCX(reg) -> (dcx reg state, [])
-        | RRC -> (rrc state, [])
-        | RAL -> (ral state, [])
-        | RAR -> (rar state, [])
-        | SHLD -> (shld state memory)
-        | DAA -> (daa state, [])
-        | LHLD -> (lhld state memory, [])
-        | CMA -> (cma state, [])
-        | STA -> (sta state memory)
-        | INR_M -> (inr_m state memory)
-        | DCR_M -> (dcr_m state memory)
-        | MVI_M -> (mvi_m state memory)
-        | STC -> (stc state, [])
-        | LDA -> (lda state memory, [])
-        | CMC -> (cmc state, [])
-        | MOV_R_R(dest, src) -> (mov_r_r dest src state, [])
-        | MOV_R_M(reg) -> (mov_r_m reg state memory, [])
-        | MOV_M_R(reg) -> mov_m_r reg state
-        | HLT -> (hlt state, [])
-        | ADD(reg) -> (add reg state, [])
-        | ADD_M -> (add_m state memory, [])
-        | ADC(reg) -> (adc reg state, [])
-        | ADC_M -> (adc_m state memory, [])
-
-// Applies memory changes to the mutable memory source
-let applyChanges memory (state, changes) =
-    List.iter (fun (addr, value) -> store addr value memory) changes
-    state
-            
-// fetch-decode-execute cycle! Where all the magic begins.
-let rec cycle state memory =
-    fetch state.PC memory
-    |> decode
-    |> fun(instruction) -> execute instruction state memory
-    |> applyChanges memory
-    |> fun state -> cycle state memory

@@ -46,6 +46,7 @@
     <Compile Include="Registers.fs" />
     <Compile Include="Memory.fs" />
     <Compile Include="Instructions.fs" />
+    <Compile Include="Cpu.fs" />
     <None Include="Script.fsx" />
   </ItemGroup>
   <PropertyGroup>
