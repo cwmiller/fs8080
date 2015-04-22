@@ -133,6 +133,12 @@ let setA (value: byte) state =
     then { state with FLAGS = state.FLAGS ||| FlagMask.A; }
     else { state with FLAGS = state.FLAGS &&& ~~~FlagMask.A; }
 
+// Set C flag based on addition result (flag is set is addition overflows)
+let setC (previousValue: byte) (value: byte) state =
+    if (value < previousValue)
+    then { state with FLAGS = state.FLAGS ||| FlagMask.C; }
+    else { state with FLAGS = state.FLAGS &&& ~~~FlagMask.C; }
+
 // Set S, Z, and P flags based on value
 let setSZP (value: byte) state =
     setS value state

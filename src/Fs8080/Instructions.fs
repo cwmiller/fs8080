@@ -28,9 +28,16 @@ type Instruction =
     | CMA
     | STA
     | INR_M
+    | DCR_M
+    | MVI_M
+    | STC
+    | LDA
+    | CMC
     | MOV_R_R of Register8 * Register8
     | MOV_R_M of Register8
     | MOV_M_R of Register8
+    | ADD of Register8
+    | ADD_M
     | HLT
 
 // Determines an instruction from its byte value
@@ -80,8 +87,8 @@ let decode byte =
         | 0x29uy -> Instruction.DAD(HL)         // Add HL to HL
         | 0x2auy -> Instruction.LHLD            // Load 16bit value from memory into HL
         | 0x2buy -> Instruction.DCX(HL)         // Decrement value in HL by 1
-        | 0x2cuy -> Instruction.INR(L)          // Increase value in L by 1
-        | 0x2duy -> Instruction.DCR(L)          // Decrease value in L by 1
+        | 0x2cuy -> Instruction.INR(L)          // Increment value in L by 1
+        | 0x2duy -> Instruction.DCR(L)          // Decrement value in L by 1
         | 0x2euy -> Instruction.MVI(L)          // Load 8bit value into L
         | 0x2fuy -> Instruction.CMA             // Set A to NOT A
         | 0x30uy -> Instruction.NOP             // Unspecified
@@ -89,7 +96,17 @@ let decode byte =
         | 0x32uy -> Instruction.STA             // Copy value from A to memory address
         | 0x33uy -> Instruction.INX(SP)         // Increment value in SP by 1
         | 0x34uy -> Instruction.INR_M           // Increment value in memory address in HL
-
+        | 0x35uy -> Instruction.DCR_M           // Decrement value in memory address in HL
+        | 0x36uy -> Instruction.MVI_M           // Copy 8bit value into the memory address in HL
+        | 0x37uy -> Instruction.STC             // Set C flag
+        | 0x38uy -> Instruction.NOP             // Unspecified
+        | 0x39uy -> Instruction.DAD(SP)         // Add SP to HL
+        | 0x3Auy -> Instruction.LDA             // Copy 8bit value in memory address to A
+        | 0x3Buy -> Instruction.DCX(SP)         // Decrement value in SP by 1
+        | 0x3Cuy -> Instruction.INR(A)          // Increment value in A by 1
+        | 0x3Duy -> Instruction.DCR(A)          // Decrement value in A by 1
+        | 0x3Euy -> Instruction.MVI(A)          // Load 8bit value into A
+        | 0x3Fuy -> Instruction.CMC             // NOT the C flag
         | 0x40uy -> Instruction.MOV_R_R(B, B)   // Copy 8bit value from B to B
         | 0x41uy -> Instruction.MOV_R_R(B, C)   // Copy 8bit value from C to B
         | 0x42uy -> Instruction.MOV_R_R(B, D)   // Copy 8bit value from D to B
@@ -154,6 +171,14 @@ let decode byte =
         | 0x7duy -> Instruction.MOV_R_R(A, L)   // Copy 8bit value from L to A
         | 0x7euy -> Instruction.MOV_R_M(A)      // Copy 8bit value from address HL to A
         | 0x7fuy -> Instruction.MOV_R_R(A, A)   // Copy 8bit value from A to A
+        | 0x80uy -> Instruction.ADD(B)          // Increment A with value in B
+        | 0x81uy -> Instruction.ADD(C)          // Increment A with value in C
+        | 0x82uy -> Instruction.ADD(D)          // Increment A with value in D
+        | 0x83uy -> Instruction.ADD(D)          // Increment A with value in D
+        | 0x84uy -> Instruction.ADD(E)          // Increment A with value in E
+        | 0x85uy -> Instruction.ADD(H)          // Increment A with value in H
+        | 0x86uy -> Instruction.ADD(L)          // Increment A with value in L
+        | 0x87uy -> Instruction.ADD_M           // Increment A with value in address in HL
 
         | _ -> raise (UnknownInstruction(byte))
 
@@ -209,11 +234,7 @@ let dcr register state =
     let value = (get8 register state) - 1uy
 
     set8 register value state
-    |> setSZP value
-    |> fun state ->
-        if (value &&& 0x0Fuy) = 0uy
-        then { state with FLAGS = state.FLAGS ||| FlagMask.A; }
-        else { state with FLAGS = state.FLAGS &&& ~~~FlagMask.A; }
+    |> setSZAP value
     |> incPC 1us
     |> incWC 5
 
@@ -378,13 +399,57 @@ let inr_m state memory =
     let addr = (get16 HL state)
     let value = (fetch addr memory) + 1uy
             
-    let newState =
-        setSZAP value state
-        |> incPC 1us
-        |> incWC 10
+    setSZAP value state
+    |> incPC 1us
+    |> incWC 10
+    |> fun state -> (state, [(addr, value)])
 
-    (newState, [(addr, value)])
 
+// Decrement value in memory pointed to by HL 
+let dcr_m state memory =
+    let addr = (get16 HL state)
+    let value = (fetch addr memory) - 1uy
+            
+    setSZAP value state
+    |> incPC 1us
+    |> incWC 10
+    |> fun state -> (state, [(addr, value)])
+    
+
+// Copy 8bit value into memory address in HL
+let mvi_m state memory =
+    let address = get16 HL state
+    let value = fetch (state.PC + 1us) memory
+
+    incPC 2us state
+    |> incWC 10
+    |> fun state -> (state, [(address, value)])
+
+
+// Enables the C flag
+let stc state =
+    { state with FLAGS = state.FLAGS ||| FlagMask.C }
+    |> incPC 1us
+    |> incWC 4
+
+
+// Copy contents of memory address into A
+let lda state memory =
+    let address = {
+        High = fetch (state.PC + 2us) memory;
+        Low = fetch (state.PC + 1us) memory;
+    }
+
+    set8 A (fetch address memory) state
+    |> incPC 3us
+    |> incWC 13
+
+
+// Set the C flag to NOT C
+let cmc state =
+    { state with FLAGS = state.FLAGS ^^^ FlagMask.C }
+    |> incPC 1us
+    |> incWC 4
 
 // Copy 8bit value from register to register
 let mov_r_r dest src state =
@@ -410,11 +475,38 @@ let mov_m_r register state =
     let value = get8 register state
     (incPC 1us state|> incWC 7, [(addr, value)])
 
-
+   
 // Halt CPU
 let hlt state =
     incPC 1us state
     |> incWC 7
+
+// Increment A by 8bit register
+let add register state =
+    let existing = get8 A state
+    let sum = existing + (get8 register state)
+
+    state
+    |> set8 A sum
+    |> setSZAP sum
+    |> setC existing sum
+    |> incPC 1us
+    |> incWC 4
+
+
+// Increment A by value in address in HL
+let add_m state memory =
+    let value = fetch (get16 HL state) memory
+    let existing = get8 A state
+    let sum = existing + value
+
+    state
+    |> set8 A sum
+    |> setSZAP sum
+    |> setC existing sum
+    |> incPC 1us
+    |> incWC 7
+
 
 // Carries out the given instruction
 // Returns the post-execution state along with a list of changes to perform on memory
@@ -440,10 +532,17 @@ let execute instruction state memory =
         | CMA -> (cma state, [])
         | STA -> (sta state memory)
         | INR_M -> (inr_m state memory)
+        | DCR_M -> (dcr_m state memory)
+        | MVI_M -> (mvi_m state memory)
+        | STC -> (stc state, [])
+        | LDA -> (lda state memory, [])
+        | CMC -> (cmc state, [])
         | MOV_R_R(dest, src) -> (mov_r_r dest src state, [])
         | MOV_R_M(reg) -> (mov_r_m reg state memory, [])
         | MOV_M_R(reg) -> mov_m_r reg state
         | HLT -> (hlt state, [])
+        | ADD(reg) -> (add reg state, [])
+        | ADD_M -> (add_m state memory, [])
 
 // Applies memory changes to the mutable memory source
 let applyChanges memory (state, changes) =
