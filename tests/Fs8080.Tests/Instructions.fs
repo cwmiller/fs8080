@@ -21,6 +21,7 @@ let defaultState = {
     WC = 0;
 }
 
+// NOP
 [<Test>]
 let ``NOP should only affect PC and WC states`` () =
     defaultState
@@ -28,6 +29,7 @@ let ``NOP should only affect PC and WC states`` () =
     |> fun state -> (state.A + state.B + state.C + state.D + state.E + state.FLAGS)
     |> should equal 0
 
+// LXI
 [<Test>]
 let ``LXI B, 65520 should load 0xFF into B and 0xF0 into C`` () =
     let newState = lxi BC defaultState [|0x01uy; 0xF0uy; 0xFFuy|]
@@ -38,6 +40,7 @@ let ``LXI B, 65520 should load 0xFF into B and 0xF0 into C`` () =
     newState.C
     |> should equal 0xF0
 
+// STAX
 [<Test>]
 let ``STAX B while A contains 0xFE and BC contains 0xAABB with should place value from A (0xFE) into memory address 0xAABB`` () =
     let changes =
@@ -56,6 +59,7 @@ let ``STAX B while A contains 0xFE and BC contains 0xAABB with should place valu
     |> snd
     |> should equal 0xFE
 
+// INX
 [<Test>]
 let ``INX B while BC contains 0x00FF should increment BC to 0x100`` () =
     { defaultState with B = 0x00uy; C = 0xFFuy; }
@@ -63,6 +67,7 @@ let ``INX B while BC contains 0x00FF should increment BC to 0x100`` () =
     |> get16 BC
     |> should equal { High = 0x01uy; Low = 0x00uy; }
 
+// INR
 [<Test>]
 let ``INR B while B contains 0x0F should increment B to 0x10`` () =
     { defaultState with B = 0x0Fuy; }
@@ -70,6 +75,7 @@ let ``INR B while B contains 0x0F should increment B to 0x10`` () =
     |> get8 B
     |> should equal 0x10uy
 
+// DCR
 [<Test>]
 let ``DCR B while B contains 0x0F should decrement B to 0x0E`` () =
     { defaultState with B = 0x0Fuy; }
@@ -77,6 +83,7 @@ let ``DCR B while B contains 0x0F should decrement B to 0x0E`` () =
     |> get8 B
     |> should equal 0x0Euy
 
+// MVI
 [<Test>]
 let ``MVI B, 255 should set B to 0xFF`` () =
     defaultState
@@ -84,6 +91,8 @@ let ``MVI B, 255 should set B to 0xFF`` () =
     |> get8 B
     |> should equal 0xFFuy
 
+
+// RLC
 [<Test>]
 let ``RLC while A contains 0x40 should set A to 0x80 and not set the C flag`` () =
     let newState = 
@@ -110,6 +119,7 @@ let ``RLC while A contains 0x80 should set A to 0x00 and set the C flag`` () =
     newState.FLAGS &&& FlagMask.C
     |> should equal FlagMask.C
 
+// DAD
 [<Test>]
 let ``DAD D while HL contains 0xDEAD and DE contains 0xBEEF should set HL to 0x9D9C and set the C flag`` () = 
     let newState =
@@ -136,6 +146,7 @@ let ``DAD D while HL contains 0xAABB and DE contains 0x1122 should set HL to 0xB
     newState.FLAGS &&& FlagMask.C
     |> should not' (equal FlagMask.C)
     
+// LDAX
 [<Test>]
 let ``LDAX D when DE contains memory address 0xBEEF, containing the value 0xCC, should set A to 0xCC`` () =
     let memory = Array.zeroCreate<byte> 65535
@@ -145,6 +156,7 @@ let ``LDAX D when DE contains memory address 0xBEEF, containing the value 0xCC, 
     |> fun state -> ldax DE state memory
     |> fun state -> should equal 0xCC (state.A)
 
+// DCX
 [<Test>]
 let ``DCX D when DE contains value 0xFFFF should set the value to 0xFFFE`` () =
     { defaultState with D = 0xFFuy; E = 0xFFuy; }
@@ -152,6 +164,7 @@ let ``DCX D when DE contains value 0xFFFF should set the value to 0xFFFE`` () =
     |> get16 DE
     |> should equal { High = 0xFFuy; Low = 0xFEuy }
 
+// RRC
 [<Test>]
 let ``RRC while A contains 0x01 should shift the value to to 0x80 and set the C flag`` () =
     let newState =
@@ -176,6 +189,7 @@ let ``RRC while A contains 0x80 should shift the value to to 0x40 and not set th
     newState.FLAGS &&& FlagMask.C
     |> should not' (equal FlagMask.C)
 
+// RAL
 [<Test>]
 let ``RAL while A contains 0x01 and the C flag is set should set A to 0x3 and unset the C flag`` () =
     let newState =
@@ -204,6 +218,7 @@ let ``RAL while A contains 0x81 and the C flag is not set should set A to 0x2 an
     |> get8 FLAGS
     |> should equal FlagMask.C
 
+// RAR
 [<Test>]
 let ``RAR while A contains 0x81 should set A to 0xC0 and set the C flag`` () =
     let newState =
@@ -232,6 +247,7 @@ let ``RAR while A contains 0x40 should set A to 0x20 and not set the C flag`` ()
     |> get8 FLAGS
     |> should not' (equal FlagMask.C)
 
+// SHLD
 [<Test>]
 let ``SHLD 0xBEEF while HL contains 0xDEAD should copy 0xAD to address 0xBEEF and 0xDE to address 0xBEF0`` () =
     let memory = Array.zeroCreate<byte> 65535
@@ -262,6 +278,7 @@ let ``SHLD 0xBEEF while HL contains 0xDEAD should copy 0xAD to address 0xBEEF an
     |> snd
     |> should equal 0xDEuy;
 
+// DAA
 [<Test>]
 let ``DAA should only affect PC and WC`` () =
     defaultState
@@ -269,6 +286,7 @@ let ``DAA should only affect PC and WC`` () =
     |> fun state -> (state.A + state.B + state.C + state.D + state.E + state.FLAGS)
     |> should equal 0
 
+// LHLD
 [<Test>]
 let ``LHLD 0xDEAD while memory address 0xDEAD contains 0xEF and 0xDEAE contains 0xBE should set H to 0xBE and L to 0xEF`` () =
     let memory = Array.zeroCreate<byte> 65535
@@ -285,6 +303,7 @@ let ``LHLD 0xDEAD while memory address 0xDEAD contains 0xEF and 0xDEAE contains 
     newState.L
     |> should equal 0xEF
 
+// CMA
 [<Test>]
 let ``CMA while A contains 0xAA should change A to 0x55`` () =
     { defaultState with A = 0xAAuy }
@@ -292,6 +311,7 @@ let ``CMA while A contains 0xAA should change A to 0x55`` () =
     |> get8 A
     |> should equal 0x55uy
 
+// STA
 [<Test>]
 let ``STA 0xBEEF while A contains 0xFF should set memory address 0xBEEF to 0xFF`` () =
     let memory = Array.zeroCreate<byte> 65535
@@ -311,6 +331,7 @@ let ``STA 0xBEEF while A contains 0xFF should set memory address 0xBEEF to 0xFF`
     |> snd
     |> should equal 0xFF
 
+// INR
 [<Test>]
 let ``INR M while HL contains 0xBEEF and memory address 0xBEEF contains 0xDE should set 0xBEEF to 0xDF`` () =
     let memory = Array.zeroCreate<byte> 65535
@@ -332,6 +353,7 @@ let ``INR M while HL contains 0xBEEF and memory address 0xBEEF contains 0xDE sho
     |> snd
     |> should equal 0xDF
 
+// DCR
 [<Test>]
 let ``DCR M while HL contains 0xBEEF and memory address 0xBEEF contains 0xDE should set 0xBEEF to 0xDD`` () =
     let memory = Array.zeroCreate<byte> 65535
@@ -353,6 +375,7 @@ let ``DCR M while HL contains 0xBEEF and memory address 0xBEEF contains 0xDE sho
     |> snd
     |> should equal 0xDD
 
+// MVI
 [<Test>]
 let ``MVI M, 0xCC while HL contains 0xBEEF should set 0xBEEF to 0xCC`` () =
     let memory = Array.zeroCreate<byte> 65535
@@ -375,6 +398,7 @@ let ``MVI M, 0xCC while HL contains 0xBEEF should set 0xBEEF to 0xCC`` () =
     |> snd
     |> should equal 0xCC
 
+// STC
 [<Test>]
 let ``STC should only affect C flag`` () =
     defaultState
@@ -382,6 +406,7 @@ let ``STC should only affect C flag`` () =
     |> get8 FLAGS
     |> should equal FlagMask.C
 
+// LDA
 [<Test>]
 let ``LDA 0xBEEF while 0xBEEF contains 0xAB should set A to 0xAB`` () =
     let memory = Array.zeroCreate<byte> 65535
@@ -393,6 +418,7 @@ let ``LDA 0xBEEF while 0xBEEF contains 0xAB should set A to 0xAB`` () =
     |> get8 A
     |> should equal 0xAB
 
+// CMC
 [<Test>]
 let ``CMC while FLAGS is 0xD7 should set FLAGS to 0xD6`` () =
     { defaultState with FLAGS = 0xD7uy }
@@ -407,6 +433,7 @@ let ``CMC while FLAGS is 0x00 should set FLAGS to 0x01`` () =
     |> get8 FLAGS
     |> should equal 0x01
 
+// MOV
 [<Test>]
 let ``MOV B, C while C contains 0xAA should set B to 0xAA`` () =
     { defaultState with C = 0xAAuy; }
@@ -442,6 +469,7 @@ let ``MOV M, C while HL contains address 0xDEAD and C contains 0xBE should set m
     |> snd
     |> should equal 0xBE
 
+// HLT
 [<Test>]
 let ``HLT should only affect the PC and WC states`` () =
     defaultState
@@ -449,6 +477,7 @@ let ``HLT should only affect the PC and WC states`` () =
     |> fun state -> (state.A + state.B + state.C + state.D + state.E + state.FLAGS)
     |> should equal 0
 
+// ADD
 [<Test>]
 let ``ADD B while A contains 0xAA and B contains 0x11 should set A to 0xBB and not set C flag`` () =
     let newState = 
@@ -473,6 +502,7 @@ let ``ADD B while A contains 0xAA and B contains 0xCC should set A to 0x76 and s
     (newState.FLAGS &&& FlagMask.C)
     |> should equal FlagMask.C
 
+// ADC
 [<Test>]
 let ``ADC B while A contains 0xAA, B contains 0x11, and C not set should set A to 0xBB and not set C flag`` () =
     let newState = 
@@ -520,3 +550,212 @@ let ``ADC B while A contains 0xAA, B contains 0xCC, and C is set should set A to
 
     (newState.FLAGS &&& FlagMask.C)
     |> should equal FlagMask.C
+
+// RNZ
+[<Test>]
+let ``RNZ while stack points to 0xBEEF and Z flag is not set should set PC to 0xBEEF`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 0xAAAA 0xEFuy
+    Array.set memory 0xAAAB 0xBEuy
+
+    { defaultState with SP = { High = 0xAAuy; Low = 0xAAuy } }
+    |> fun state -> rnz state memory
+    |> fun state -> should equal 0xBEEF (state.PC.Value)
+
+[<Test>]
+let ``RNZ while stack points to 0xBEEF and Z flag is set should not set PC to 0xBEEF`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 0xAAAA 0xEFuy
+    Array.set memory 0xAAAB 0xBEuy
+
+    { defaultState with SP = { High = 0xAAuy; Low = 0xAAuy }; FLAGS = FlagMask.Z }
+    |> fun state -> rnz state memory
+    |> fun state -> should not' (equal 0xBEEF) (state.PC.Value)
+
+// JNZ
+[<Test>]
+let ``JNZ 0xBEEF while Z is not set should set PC to 0xBEEF`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 1 0xEFuy
+    Array.set memory 2 0xBEuy
+
+    jnz defaultState memory
+    |> fun state -> should equal 0xBEEF (state.PC.Value)
+
+[<Test>]
+let ``JNZ 0xBEEF while Z is set should only incease PC by 3`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 1 0xEFuy
+    Array.set memory 2 0xBEuy
+
+    jnz defaultState memory
+    |> fun state -> should equal 0xBEEF (state.PC.Value)
+
+// JMP
+[<Test>]
+let ``JMP 0xBEEF should set PC to 0xBEEF`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 1 0xEFuy
+    Array.set memory 2 0xBEuy
+
+    jmp defaultState memory
+    |> fun state -> should equal 0xBEEF (state.PC.Value)
+
+// CNZ
+[<Test>]
+let ``CNZ 0xBEEF while Z flag is not set should push PC+3 to the stack then set PC to 0xBEEF`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 0xAAAA 0xC4uy
+    Array.set memory 0xAAAB 0xEFuy
+    Array.set memory 0xAAAC 0xBEuy
+
+    let (newState, changes) =
+        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; } }
+        |> fun state -> cnz state memory
+
+    newState.PC.Value
+    |> should equal 0xBEEF
+
+    newState.SP.Value
+    |> should equal 0xFFFD
+    
+    changes.Length
+    |> should equal 2 
+
+    changes.Head
+    |> fst
+    |> should equal { High = 0xFFuy; Low = 0xFEuy }
+
+    changes.Head
+    |> snd
+    |> should equal 0xAD
+
+    changes.Tail.Head
+    |> fst
+    |> should equal { High = 0xFFuy; Low = 0xFDuy; }
+
+    changes.Tail.Head
+    |> snd
+    |> should equal 0xAA
+
+[<Test>]
+let ``CNZ 0xBEEF while Z flag is set should only increment PC`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 0xAAAA 0xC4uy
+    Array.set memory 0xAAAB 0xEFuy
+    Array.set memory 0xAAAC 0xBEuy
+
+    let (newState, changes) =
+        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; }; FLAGS = FlagMask.Z }
+        |> fun state -> cnz state memory
+
+    newState.PC.Value
+    |> should equal 0xAAAD
+
+    newState.SP.Value
+    |> should equal 0xFFFF
+    
+    changes.Length
+    |> should equal 0
+
+// RZ
+[<Test>]
+let ``RZ while stack points to 0xBEEF and Z flag is set should set PC to 0xBEEF`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 0xAAAA 0xEFuy
+    Array.set memory 0xAAAB 0xBEuy
+
+    { defaultState with SP = { High = 0xAAuy; Low = 0xAAuy }; FLAGS = FlagMask.Z }
+    |> fun state -> rz state memory
+    |> fun state -> should equal 0xBEEF (state.PC.Value)
+
+[<Test>]
+let ``RZ while stack points to 0xBEEF and Z flag is not set should set PC to 0xBEEF`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 0xAAAA 0xEFuy
+    Array.set memory 0xAAAB 0xBEuy
+
+    { defaultState with SP = { High = 0xAAuy; Low = 0xAAuy } }
+    |> fun state -> rz state memory
+    |> fun state -> should not' (equal 0xBEEF) (state.PC.Value)
+
+
+// RET
+[<Test>]
+let ``RET while stack points to 0xBEEF should set PC to 0xBEEF`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 0xAAAA 0xEFuy
+    Array.set memory 0xAAAB 0xBEuy
+
+    { defaultState with SP = { High = 0xAAuy; Low = 0xAAuy } }
+    |> fun state -> ret state memory
+    |> fun state -> should equal 0xBEEF (state.PC.Value)
+
+// JZ
+[<Test>]
+let ``JZ 0xBEEF while Z is set should set PC to 0xBEEF`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 1 0xEFuy
+    Array.set memory 2 0xBEuy
+
+    { defaultState with FLAGS = FlagMask.Z }
+    |> fun state -> jz state memory
+    |> fun state -> should equal 0xBEEF (state.PC.Value)
+
+[<Test>]
+let ``JZ 0xBEEF while Z is not set should only incease PC by 3`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 1 0xEFuy
+    Array.set memory 2 0xBEuy
+
+    jz defaultState memory
+    |> fun state -> should equal 0x03 (state.PC.Value)
+
+// CALL
+[<Test>]
+let ``CALL 0xBEEF should push PC+3 to the stack then set PC to 0xBEEF`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 0xAAAA 0xCDuy
+    Array.set memory 0xAAAB 0xEFuy
+    Array.set memory 0xAAAC 0xBEuy
+
+    let (newState, changes) =
+        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; } }
+        |> fun state -> call state memory
+
+    newState.PC.Value
+    |> should equal 0xBEEF
+
+    newState.SP.Value
+    |> should equal 0xFFFD
+    
+    changes.Length
+    |> should equal 2 
+
+    changes.Head
+    |> fst
+    |> should equal { High = 0xFFuy; Low = 0xFEuy; }
+
+    changes.Head
+    |> snd
+    |> should equal 0xAD
+
+    changes.Tail.Head
+    |> fst
+    |> should equal { High = 0xFFuy; Low = 0xFDuy; }
+
+    changes.Tail.Head
+    |> snd
+    |> should equal 0xAA
+
+
+// ANI
+[<Test>]
+let ``ANI 0xAA while A contains 0x0F should set A to 0x0A`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 1 0xAAuy
+
+    { defaultState with A = 0x0Fuy }
+    |> fun state -> ani state memory
+    |> get8 A
+    |> should equal 0x0A

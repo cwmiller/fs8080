@@ -42,6 +42,13 @@ let execute instruction state memory =
         | ADD_M                 -> add_m state memory, []
         | ADC(reg)              -> adc reg state, []
         | ADC_M                 -> adc_m state memory, []
+        | JNZ                   -> jnz state memory, []
+        | JMP                   -> jmp state memory, []
+        | CNZ                   -> cnz state memory
+        | RET                   -> ret state memory, []
+        | JZ                    -> jz state memory, []
+        | CALL                  -> call state memory
+        | ANI                   -> ani state memory, []
 
 // fetch-decode-execute cycle! Where all the magic begins.
 let rec cycle state memory =

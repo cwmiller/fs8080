@@ -41,6 +41,15 @@ type Instruction =
     | ADD_M
     | ADC of Register8
     | ADC_M
+    | RNZ
+    | JNZ
+    | JMP
+    | CNZ
+    | RZ
+    | RET
+    | JZ
+    | CALL
+    | ANI
 
 // Determines an instruction from its byte value
 let decode byte =
@@ -189,6 +198,18 @@ let decode byte =
         | 0x8Duy -> Instruction.ADC(L)          // Increment A with value in L plus Carry
         | 0x8Euy -> Instruction.ADC_M           // Increment A with value in address in HL plus Carry
 
+        | 0xC0uy -> Instruction.RNZ             // RET if Z flag is not set
+        | 0xC2uy -> Instruction.JNZ             // Jump to memory address if Z flag is not set
+        | 0xC3uy -> Instruction.JMP             // Jump to memory address
+        | 0xC4uy -> Instruction.CNZ             // CALL memory address if Z flag is not set
+        | 0xC7uy -> Instruction.RZ              // RET if Z flag is set
+
+        | 0xCAuy -> Instruction.JZ              // Jump to memory address if Z flag is set
+        | 0xC9uy -> Instruction.RET             // Pop stack to PC and jump back
+        | 0xCDuy -> Instruction.CALL            // Push PC to stack and jump to address
+
+        | 0xE6uy -> Instruction.ANI             // AND A against 8bit value
+
         | _ -> raise (UnknownInstruction(byte))
 
 
@@ -235,7 +256,7 @@ let inr register state =
     let value = (get8 register state) + 1uy
             
     set8 register value state
-    |> setSZAP value
+    |> flagSZAP value
     |> incPC 1us
     |> incWC 5
 
@@ -245,7 +266,7 @@ let dcr register state =
     let value = (get8 register state) - 1uy
 
     set8 register value state
-    |> setSZAP value
+    |> flagSZAP value
     |> incPC 1us
     |> incWC 5
 
@@ -415,7 +436,7 @@ let inr_m state memory =
     let address = (get16 HL state)
     let value = (fetch address memory) + 1uy
             
-    setSZAP value state
+    flagSZAP value state
     |> incPC 1us
     |> incWC 10
     |> fun state -> (state, [(address, value)])
@@ -426,7 +447,7 @@ let dcr_m state memory =
     let address = (get16 HL state)
     let value = (fetch address memory) - 1uy
             
-    setSZAP value state
+    flagSZAP value state
     |> incPC 1us
     |> incWC 10
     |> fun state -> (state, [(address, value)])
@@ -503,7 +524,7 @@ let add register state =
     let sum = existing + (get8 register state)
 
     set8 A sum state
-    |> setSZAP sum
+    |> flagSZAP sum
     |> flagC existing sum
     |> incPC 1us
     |> incWC 4
@@ -516,7 +537,7 @@ let add_m state memory =
     let sum = existing + value
 
     set8 A sum state
-    |> setSZAP sum
+    |> flagSZAP sum
     |> flagC existing sum
     |> incPC 1us
     |> incWC 7
@@ -527,7 +548,7 @@ let adc register state =
     let sum = existing + (get8 register state) + (state.FLAGS &&& FlagMask.C)
 
     set8 A sum state
-    |> setSZAP sum
+    |> flagSZAP sum
     |> flagC existing sum
     |> incPC 1us
     |> incWC 4
@@ -539,7 +560,133 @@ let adc_m state memory =
     let sum = existing + value + (state.FLAGS &&& FlagMask.C)
 
     set8 A sum state
-    |> setSZAP sum
+    |> flagSZAP sum
     |> flagC existing sum
     |> incPC 1us
     |> incWC 7
+
+// RET if Z flag is not set
+let rnz state memory =
+    if state.FLAGS &&& FlagMask.Z = 0uy then
+        let pc = {
+            High = (fetch (state.SP+1us) memory);
+            Low = (fetch state.SP memory);
+        }
+
+        set16 PC pc state
+        |> set16 SP (state.SP + 2us)
+        |> incWC 11
+    else
+        incPC 1us state
+        |> incWC 5
+
+// Jump to address if Z flag is not set
+let jnz state memory =
+    let address = {
+        High = fetch (state.PC + 2us) memory;
+        Low = fetch (state.PC + 1us) memory;
+    }
+
+    let nextpc = 
+        if (state.FLAGS &&& FlagMask.Z) = 0uy
+        then address.Value
+        else state.PC.Value + 3us
+
+    incPC nextpc state
+    |> incWC 10
+
+// Jump to address
+let jmp state memory =
+    let address = {
+        High = fetch (state.PC + 2us) memory;
+        Low = fetch (state.PC + 1us) memory;
+    }
+
+    { state with PC = address }
+    |> incWC 10        
+
+// RET if Z flag is set
+let rz state memory =
+    if state.FLAGS &&& FlagMask.Z = FlagMask.Z then
+        let pc = {
+            High = (fetch (state.SP+1us) memory);
+            Low = (fetch state.SP memory);
+        }
+
+        set16 PC pc state
+        |> set16 SP (state.SP + 2us)
+        |> incWC 15
+    else
+        incPC 1us state
+        |> incWC 11
+
+// AND 8bit value against A
+let ani state memory =
+    let value = 
+        fetch (state.PC + 1us) memory
+        |> (&&&) state.A
+
+    set8 A value state
+    |> flagSZAP value
+    |> incPC 2us
+    |> incWC 7
+
+// POP PC off stack and jump to it
+let ret state memory =
+    let pc = {
+        High = (fetch (state.SP+1us) memory);
+        Low = (fetch state.SP memory);
+    }
+
+    set16 PC pc state
+    |> set16 SP (state.SP + 2us)
+    |> incWC 1
+
+// Jump to address if Z flag is set
+let jz state memory =
+    let address = {
+        High = fetch (state.PC + 2us) memory;
+        Low = fetch (state.PC + 1us) memory;
+    }
+
+    let nextpc = 
+        if (state.FLAGS &&& FlagMask.Z) = FlagMask.Z
+        then address.Value
+        else state.PC.Value + 3us
+
+    incPC nextpc state
+    |> incWC 1
+
+
+// Push PC to stack and jump to address
+let call state memory =
+    let address = {
+        High = fetch (state.PC + 2us) memory;
+        Low = fetch (state.PC + 1us) memory;
+    }
+
+    let nextpc = state.PC + { High = 0uy; Low = 3uy }
+
+    let memchanges = [
+        (state.SP - 1us), nextpc.Low;
+        (state.SP - 2us), nextpc.High;
+    ]
+
+    { state with PC = address; SP = state.SP - 2us }
+    |> incWC 17
+    |> fun state -> (state, memchanges)
+
+// CALL if Z is not set
+let cnz state memory =
+    let address = {
+        High = fetch (state.PC + 2us) memory;
+        Low = fetch (state.PC + 1us) memory;
+    }
+
+    if (state.FLAGS &&& FlagMask.Z) = 0uy
+    then 
+        call state memory
+    else
+        incPC 3us state
+        |> incWC 11
+        |> fun state -> state, []

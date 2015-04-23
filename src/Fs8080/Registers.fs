@@ -122,7 +122,7 @@ let flagC (previousValue: byte) (value: byte) state =
     else { state with FLAGS = state.FLAGS &&& ~~~FlagMask.C; }
 
 // Set S, Z, A, and P flags based on value
-let setSZAP (value: byte) state =
+let flagSZAP (value: byte) state =
     flagS value state
     |> flagZ value
     |> flagP value
