@@ -48,7 +48,10 @@ type Instruction =
     | RZ
     | RET
     | JZ
+    | CZ
     | CALL
+    | RNC
+    | JNC
     | ANI
 
 // Determines an instruction from its byte value
@@ -204,10 +207,13 @@ let decode byte =
         | 0xC4uy -> Instruction.CNZ             // CALL memory address if Z flag is not set
         | 0xC7uy -> Instruction.RZ              // RET if Z flag is set
 
-        | 0xCAuy -> Instruction.JZ              // Jump to memory address if Z flag is set
         | 0xC9uy -> Instruction.RET             // Pop stack to PC and jump back
+        | 0xCAuy -> Instruction.JZ              // Jump to memory address if Z flag is set
+        | 0xCBuy -> Instruction.JMP             // Alernate for JMP (but shouldn't be used)
+        | 0xCCuy -> Instruction.CZ              // CALL memory address if Z flag is set
         | 0xCDuy -> Instruction.CALL            // Push PC to stack and jump to address
-
+        | 0xD0uy -> Instruction.RNC             // RET if C flag not set
+        | 0xD2uy -> Instruction.JNC             // Jump to memory address if C flag is not set
         | 0xE6uy -> Instruction.ANI             // AND A against 8bit value
 
         | _ -> raise (UnknownInstruction(byte))
@@ -690,3 +696,47 @@ let cnz state memory =
         incPC 3us state
         |> incWC 11
         |> fun state -> state, []
+
+// CALL if Z is set
+let cz state memory =
+    let address = {
+        High = fetch (state.PC + 2us) memory;
+        Low = fetch (state.PC + 1us) memory;
+    }
+
+    if (state.FLAGS &&& FlagMask.Z) = FlagMask.Z
+    then 
+        call state memory
+    else
+        incPC 3us state
+        |> incWC 11
+        |> fun state -> state, []
+
+// RET if C is not set
+let rnc state memory = 
+    if state.FLAGS &&& FlagMask.C = 0uy then
+        let pc = {
+            High = (fetch (state.SP+1us) memory);
+            Low = (fetch state.SP memory);
+        }
+
+        set16 PC pc state
+        |> set16 SP (state.SP + 2us)
+        |> incWC 11
+    else
+        incPC 1us state
+        |> incWC 5
+
+// Jump to address if C flag is not set
+let jnc state memory =
+    let pc = 
+        if state.FLAGS &&& FlagMask.C = 0uy then
+            { 
+                High = (fetch (state.PC+2us) memory);
+                Low = (fetch (state.PC+1us) memory);
+            }
+        else
+            state.PC + 3us
+
+    set16 PC pc state
+    |> incWC 10
