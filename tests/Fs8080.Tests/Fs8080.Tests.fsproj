@@ -51,7 +51,10 @@
   <ItemGroup>
     <Compile Include="Types.fs" />
     <Compile Include="Registers.fs" />
-    <Compile Include="Instructions.fs" />
+    <Compile Include="ControlInstructions.fs" />
+    <Compile Include="MoveInstructions.fs" />
+    <Compile Include="LogicalInstructions.fs" />
+    <Compile Include="JumpInstructions.fs" />
     <None Include="packages.config" />
     <None Include="app.config" />
   </ItemGroup>
