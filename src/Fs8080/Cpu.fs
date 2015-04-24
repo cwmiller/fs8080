@@ -166,14 +166,14 @@ let decode byte =
         | 0x95uy -> Instruction.SUB(L)          // Decrement A with value in L
         | 0x96uy -> Instruction.SUB_M           // Decrement A with value in address in HL
         | 0x97uy -> Instruction.SUB(A)          // Decrement A with value in A
-        | 0x98uy -> Instruction.SBB(B)          // Decrement A with value in B with Carry
-        | 0x99uy -> Instruction.SBB(C)          // Decrement A with value in C with Carry
-        | 0x9Auy -> Instruction.SBB(D)          // Decrement A with value in D with Carry
-        | 0x9Buy -> Instruction.SBB(E)          // Decrement A with value in E with Carry
-        | 0x9Cuy -> Instruction.SBB(H)          // Decrement A with value in H with Carry
-        | 0x9Duy -> Instruction.SBB(L)          // Decrement A with value in L with Carry
-        | 0x9Euy -> Instruction.SBB_M           // Decrement A with value in address in HL with Carry
-        | 0x9Fuy -> Instruction.SBB(A)          // Decrement A with value in A with Carry
+        | 0x98uy -> Instruction.SBB(B)          // Decrement A with value in B with Borrow
+        | 0x99uy -> Instruction.SBB(C)          // Decrement A with value in C with Borrow
+        | 0x9Auy -> Instruction.SBB(D)          // Decrement A with value in D with Borrow
+        | 0x9Buy -> Instruction.SBB(E)          // Decrement A with value in E with Borrow
+        | 0x9Cuy -> Instruction.SBB(H)          // Decrement A with value in H with Borrow
+        | 0x9Duy -> Instruction.SBB(L)          // Decrement A with value in L with Borrow
+        | 0x9Euy -> Instruction.SBB_M           // Decrement A with value in address in HL with Borrow
+        | 0x9Fuy -> Instruction.SBB(A)          // Decrement A with value in A with Borrow
 
         | 0xC0uy -> Instruction.RNZ             // RET if Z flag is not set
         | 0xC1uy -> Instruction.POP(BC)         // POP stack to BC
