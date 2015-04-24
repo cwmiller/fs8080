@@ -161,3 +161,18 @@ let jnc state memory =
 
     set16 PC pc state
     |> incWC 10
+
+// CALL if C flag is not set
+let cnc state memory =
+    let address = {
+        High = fetch (state.PC + 2us) memory;
+        Low = fetch (state.PC + 1us) memory;
+    }
+
+    if (state.FLAGS &&& FlagMask.C) = 0uy
+    then 
+        call state memory
+    else
+        incPC 3us state
+        |> incWC 11
+        |> fun state -> state, []

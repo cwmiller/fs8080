@@ -56,12 +56,12 @@ let decode byte =
         | 0x27uy -> Instruction.DAA             // Not sure
         | 0x28uy -> Instruction.NOP             // Unspecified
         | 0x29uy -> Instruction.DAD(HL)         // Add HL to HL
-        | 0x2auy -> Instruction.LHLD            // Load 16bit value from memory into HL
-        | 0x2buy -> Instruction.DCX(HL)         // Decrement value in HL by 1
-        | 0x2cuy -> Instruction.INR(L)          // Increment value in L by 1
-        | 0x2duy -> Instruction.DCR(L)          // Decrement value in L by 1
-        | 0x2euy -> Instruction.MVI(L)          // Load 8bit value into L
-        | 0x2fuy -> Instruction.CMA             // Set A to NOT A
+        | 0x2Auy -> Instruction.LHLD            // Load 16bit value from memory into HL
+        | 0x2Buy -> Instruction.DCX(HL)         // Decrement value in HL by 1
+        | 0x2Cuy -> Instruction.INR(L)          // Increment value in L by 1
+        | 0x2Duy -> Instruction.DCR(L)          // Decrement value in L by 1
+        | 0x2Euy -> Instruction.MVI(L)          // Load 8bit value into L
+        | 0x2Fuy -> Instruction.CMA             // Set A to NOT A
         | 0x30uy -> Instruction.NOP             // Unspecified
         | 0x31uy -> Instruction.LXI(SP)         // Load 16bit value into SP
         | 0x32uy -> Instruction.STA             // Copy value from A to memory address
@@ -88,12 +88,12 @@ let decode byte =
         | 0x47uy -> Instruction.MOV_R_R(B, A)   // Copy 8bit value from A to B
         | 0x48uy -> Instruction.MOV_R_R(C, B)   // Copy 8bit value from B to C
         | 0x49uy -> Instruction.MOV_R_R(C, C)   // Copy 8bit value from C to C
-        | 0x4auy -> Instruction.MOV_R_R(C, D)   // Copy 8bit value from D to C
-        | 0x4buy -> Instruction.MOV_R_R(C, E)   // Copy 8bit value from E to C
-        | 0x4cuy -> Instruction.MOV_R_R(C, H)   // Copy 8bit value from H to C
-        | 0x4duy -> Instruction.MOV_R_R(C, L)   // Copy 8bit value from L to C
-        | 0x4euy -> Instruction.MOV_R_M(C)      // Copy 8bit value from address HL to C
-        | 0x4fuy -> Instruction.MOV_R_R(C, A)   // Copy 8bit value from A to C
+        | 0x4Auy -> Instruction.MOV_R_R(C, D)   // Copy 8bit value from D to C
+        | 0x4Buy -> Instruction.MOV_R_R(C, E)   // Copy 8bit value from E to C
+        | 0x4Cuy -> Instruction.MOV_R_R(C, H)   // Copy 8bit value from H to C
+        | 0x4Duy -> Instruction.MOV_R_R(C, L)   // Copy 8bit value from L to C
+        | 0x4Euy -> Instruction.MOV_R_M(C)      // Copy 8bit value from address HL to C
+        | 0x4Fuy -> Instruction.MOV_R_R(C, A)   // Copy 8bit value from A to C
         | 0x50uy -> Instruction.MOV_R_R(D, B)   // Copy 8bit value from B to D
         | 0x51uy -> Instruction.MOV_R_R(D, C)   // Copy 8bit value from C to D
         | 0x52uy -> Instruction.MOV_R_R(D, D)   // Copy 8bit value from D to D
@@ -104,12 +104,12 @@ let decode byte =
         | 0x57uy -> Instruction.MOV_R_R(D, A)   // Copy 8bit value from A to D
         | 0x58uy -> Instruction.MOV_R_R(E, B)   // Copy 8bit value from B to E
         | 0x59uy -> Instruction.MOV_R_R(E, C)   // Copy 8bit value from C to E
-        | 0x5auy -> Instruction.MOV_R_R(E, D)   // Copy 8bit value from D to E
-        | 0x5buy -> Instruction.MOV_R_R(E, E)   // Copy 8bit value from E to E
-        | 0x5cuy -> Instruction.MOV_R_R(E, H)   // Copy 8bit value from H to E
-        | 0x5duy -> Instruction.MOV_R_R(E, L)   // Copy 8bit value from L to E
-        | 0x5euy -> Instruction.MOV_R_M(E)      // Copy 8bit value from address HL to E
-        | 0x5fuy -> Instruction.MOV_R_R(E, A)   // Copy 8bit value from A to E
+        | 0x5Auy -> Instruction.MOV_R_R(E, D)   // Copy 8bit value from D to E
+        | 0x5Buy -> Instruction.MOV_R_R(E, E)   // Copy 8bit value from E to E
+        | 0x5Cuy -> Instruction.MOV_R_R(E, H)   // Copy 8bit value from H to E
+        | 0x5Duy -> Instruction.MOV_R_R(E, L)   // Copy 8bit value from L to E
+        | 0x5Euy -> Instruction.MOV_R_M(E)      // Copy 8bit value from address HL to E
+        | 0x5Fuy -> Instruction.MOV_R_R(E, A)   // Copy 8bit value from A to E
         | 0x60uy -> Instruction.MOV_R_R(H, B)   // Copy 8bit value from B to H
         | 0x61uy -> Instruction.MOV_R_R(H, C)   // Copy 8bit value from c to H
         | 0x62uy -> Instruction.MOV_R_R(H, D)   // Copy 8bit value from D to H
@@ -120,12 +120,12 @@ let decode byte =
         | 0x67uy -> Instruction.MOV_R_R(H, A)   // Copy 8bit value from A to H
         | 0x68uy -> Instruction.MOV_R_R(L, B)   // Copy 8bit value from B to L
         | 0x69uy -> Instruction.MOV_R_R(L, C)   // Copy 8bit value from C to L
-        | 0x6auy -> Instruction.MOV_R_R(L, D)   // Copy 8bit value from D to L
-        | 0x6buy -> Instruction.MOV_R_R(L, E)   // Copy 8bit value from E to L
-        | 0x6cuy -> Instruction.MOV_R_R(L, H)   // Copy 8bit value from H to L
-        | 0x6duy -> Instruction.MOV_R_R(L, L)   // Copy 8bit value from L to L
-        | 0x6euy -> Instruction.MOV_R_M(L)      // Copy 8bit value from L to L
-        | 0x6fuy -> Instruction.MOV_R_R(L, A)   // Copy 8bit value from A to L
+        | 0x6Auy -> Instruction.MOV_R_R(L, D)   // Copy 8bit value from D to L
+        | 0x6Buy -> Instruction.MOV_R_R(L, E)   // Copy 8bit value from E to L
+        | 0x6Cuy -> Instruction.MOV_R_R(L, H)   // Copy 8bit value from H to L
+        | 0x6Duy -> Instruction.MOV_R_R(L, L)   // Copy 8bit value from L to L
+        | 0x6Euy -> Instruction.MOV_R_M(L)      // Copy 8bit value from L to L
+        | 0x6Fuy -> Instruction.MOV_R_R(L, A)   // Copy 8bit value from A to L
         | 0x70uy -> Instruction.MOV_M_R(B)      // Copy 8bit value from B to address HL
         | 0x71uy -> Instruction.MOV_M_R(C)      // Copy 8bit value from C to address HL
         | 0x72uy -> Instruction.MOV_M_R(D)      // Copy 8bit value from D to address HL
@@ -136,12 +136,12 @@ let decode byte =
         | 0x77uy -> Instruction.MOV_M_R(A)      // Copy 8bit value in A to address HL
         | 0x78uy -> Instruction.MOV_R_R(A, B)   // Copy 8bit value from B to A
         | 0x79uy -> Instruction.MOV_R_R(A, C)   // Copy 8bit value from C to A
-        | 0x7auy -> Instruction.MOV_R_R(A, D)   // Copy 8bit value from D to A
-        | 0x7buy -> Instruction.MOV_R_R(A, E)   // Copy 8bit value from E to A
-        | 0x7cuy -> Instruction.MOV_R_R(A, H)   // Copy 8bit value from H to A
-        | 0x7duy -> Instruction.MOV_R_R(A, L)   // Copy 8bit value from L to A
-        | 0x7euy -> Instruction.MOV_R_M(A)      // Copy 8bit value from address HL to A
-        | 0x7fuy -> Instruction.MOV_R_R(A, A)   // Copy 8bit value from A to A
+        | 0x7Auy -> Instruction.MOV_R_R(A, D)   // Copy 8bit value from D to A
+        | 0x7Buy -> Instruction.MOV_R_R(A, E)   // Copy 8bit value from E to A
+        | 0x7Cuy -> Instruction.MOV_R_R(A, H)   // Copy 8bit value from H to A
+        | 0x7Duy -> Instruction.MOV_R_R(A, L)   // Copy 8bit value from L to A
+        | 0x7Euy -> Instruction.MOV_R_M(A)      // Copy 8bit value from address HL to A
+        | 0x7Fuy -> Instruction.MOV_R_R(A, A)   // Copy 8bit value from A to A
         | 0x80uy -> Instruction.ADD(B)          // Increment A with value in B
         | 0x81uy -> Instruction.ADD(C)          // Increment A with value in C
         | 0x82uy -> Instruction.ADD(D)          // Increment A with value in D
@@ -157,21 +157,56 @@ let decode byte =
         | 0x8Cuy -> Instruction.ADC(H)          // Increment A with value in H plus Carry
         | 0x8Duy -> Instruction.ADC(L)          // Increment A with value in L plus Carry
         | 0x8Euy -> Instruction.ADC_M           // Increment A with value in address in HL plus Carry
+        | 0x8Fuy -> Instruction.ADC(A)          // Increment A with value in A plus Carry
+        | 0x90uy -> Instruction.SUB(B)          // Decrement A with value in B
+        | 0x91uy -> Instruction.SUB(C)          // Decrement A with value in C
+        | 0x92uy -> Instruction.SUB(D)          // Decrement A with value in D
+        | 0x93uy -> Instruction.SUB(E)          // Decrement A with value in E
+        | 0x94uy -> Instruction.SUB(H)          // Decrement A with value in H
+        | 0x95uy -> Instruction.SUB(L)          // Decrement A with value in L
+        | 0x96uy -> Instruction.SUB_M           // Decrement A with value in address in HL
+        | 0x97uy -> Instruction.SUB(A)          // Decrement A with value in A
+        | 0x98uy -> Instruction.SBB(B)          // Decrement A with value in B with Carry
+        | 0x99uy -> Instruction.SBB(C)          // Decrement A with value in C with Carry
+        | 0x9Auy -> Instruction.SBB(D)          // Decrement A with value in D with Carry
+        | 0x9Buy -> Instruction.SBB(E)          // Decrement A with value in E with Carry
+        | 0x9Cuy -> Instruction.SBB(H)          // Decrement A with value in H with Carry
+        | 0x9Duy -> Instruction.SBB(L)          // Decrement A with value in L with Carry
+        | 0x9Euy -> Instruction.SBB_M           // Decrement A with value in address in HL with Carry
+        | 0x9Fuy -> Instruction.SBB(A)          // Decrement A with value in A with Carry
 
         | 0xC0uy -> Instruction.RNZ             // RET if Z flag is not set
+        | 0xC1uy -> Instruction.POP(BC)         // POP stack to BC
         | 0xC2uy -> Instruction.JNZ             // Jump to memory address if Z flag is not set
         | 0xC3uy -> Instruction.JMP             // Jump to memory address
         | 0xC4uy -> Instruction.CNZ             // CALL memory address if Z flag is not set
-        | 0xC7uy -> Instruction.RZ              // RET if Z flag is set
+        | 0xC5uy -> Instruction.PUSH(BC)        // PUSH stack with value in BC
 
+
+        | 0xC8uy -> Instruction.RZ              // RET if Z flag is set
         | 0xC9uy -> Instruction.RET             // Pop stack to PC and jump back
         | 0xCAuy -> Instruction.JZ              // Jump to memory address if Z flag is set
         | 0xCBuy -> Instruction.JMP             // Alernate for JMP (but shouldn't be used)
         | 0xCCuy -> Instruction.CZ              // CALL memory address if Z flag is set
         | 0xCDuy -> Instruction.CALL            // Push PC to stack and jump to address
+
         | 0xD0uy -> Instruction.RNC             // RET if C flag not set
+        | 0xD1uy -> Instruction.POP(DE)         // POP stack to DE
         | 0xD2uy -> Instruction.JNC             // Jump to memory address if C flag is not set
+
+        | 0xD4uy -> Instruction.CNC             // CALL memory address if C flag is not set
+        | 0xD5uy -> Instruction.PUSH(DE)        // PUSH stack with value in DE
+        
+        | 0xDDuy -> Instruction.CALL            // Alternative for CALL (but shouldn't be used)
+
+        | 0xE1uy -> Instruction.POP(HL)         // POP stack to HL
+
+        | 0xE5uy -> Instruction.PUSH(HL)        // PUSH stack with value in H
         | 0xE6uy -> Instruction.ANI             // AND A against 8bit value
+
+        | 0xEDuy -> Instruction.CALL            // Alternative for CALL (but shouldn't be used)
+
+        | 0xFDuy -> Instruction.CALL            // Alternative for CALL (but shouldn't be used)
 
         | _ -> raise (UnknownInstruction(byte))
 
@@ -212,10 +247,16 @@ let execute instruction state memory =
         | ADD_M                 -> add_m state memory, []
         | ADC(reg)              -> adc reg state, []
         | ADC_M                 -> adc_m state memory, []
+        | SUB(reg)              -> sub reg state, []
+        | SUB_M                 -> sub_m state memory, []
+        | SBB(reg)              -> sbb reg state, []
+        | SBB_M                 -> sbb_m state memory, []
         | RNZ                   -> rnz state memory, []
+        | POP(reg)              -> pop reg state memory, []
         | JNZ                   -> jnz state memory, []
         | JMP                   -> jmp state memory, []
         | CNZ                   -> cnz state memory
+        | PUSH(reg)             -> push reg state
         | RZ                    -> rz state memory, []
         | RET                   -> ret state memory, []
         | JZ                    -> jz state memory, []
@@ -223,6 +264,7 @@ let execute instruction state memory =
         | CALL                  -> call state memory
         | RNC                   -> rnc state memory, []
         | JNC                   -> jnc state memory, []
+        | CNC                   -> cnc state memory
         | ANI                   -> ani state memory, []
 
 // fetch-decode-execute cycle! Where all the magic begins.

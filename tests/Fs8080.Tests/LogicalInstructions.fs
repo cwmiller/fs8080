@@ -347,6 +347,172 @@ let ``ADC B while A contains 0xAA, B contains 0xCC, and C is set should set A to
     (newState.FLAGS &&& FlagMask.C)
     |> should equal FlagMask.C
 
+// SUB
+[<Test>]
+let ``SUB B while A contains 0xBB and B contains 0x11 should set A to 0xAA and not set C flag`` () =
+    let newState = 
+        { defaultState with A = 0xBBuy; B = 0x11uy }
+        |> sub B
+
+    newState.A
+    |> should equal 0xAA
+
+    (newState.FLAGS &&& FlagMask.C)
+    |> should not' (equal FlagMask.C)
+
+[<Test>]
+let ``SUB B while A contains 0xAA and B contains 0xCC should set A to 0xDE and set the C flag`` () =
+    let newState = 
+        { defaultState with A = 0xAAuy; B = 0xCCuy }
+        |> sub B
+
+    newState.A
+    |> should equal 0xDE
+
+    (newState.FLAGS &&& FlagMask.C)
+    |> should equal FlagMask.C
+
+// SUB M
+[<Test>]
+let ``SUB M while A contains 0xBB and HL points to 0x11 should set A to 0xAA and not set C flag`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 0xBEEF 0x11uy
+
+    let newState = 
+        { defaultState with A = 0xBBuy; H = 0xBEuy; L = 0xEFuy }
+        |> fun state -> sub_m state memory
+
+    newState.A
+    |> should equal 0xAA
+
+    (newState.FLAGS &&& FlagMask.C)
+    |> should not' (equal FlagMask.C)
+
+[<Test>]
+let ``SUB M while A contains 0xAA and HL points to 0xCC should set A to 0xDE and set the C flag`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 0xBEEF 0xCCuy
+
+    let newState = 
+        { defaultState with A = 0xAAuy; H = 0xBEuy; L = 0xEFuy }
+        |> fun state -> sub_m state memory
+
+    newState.A
+    |> should equal 0xDE
+
+    (newState.FLAGS &&& FlagMask.C)
+    |> should equal FlagMask.C
+
+// SBB
+[<Test>]
+let ``SBB B while A contains 0xAA, B contains 0x11, and C not set should set A to 0x99 and not set C flag`` () =
+    let newState = 
+        { defaultState with A = 0xAAuy; B = 0x11uy }
+        |> sbb B
+
+    newState.A
+    |> should equal 0x99
+
+    (newState.FLAGS &&& FlagMask.C)
+    |> should not' (equal FlagMask.C)
+
+[<Test>]
+let ``SBB B while A contains 0xAA, B contains 0xCC, and C not set should set A to 0xDE and set the C flag`` () =
+    let newState = 
+        { defaultState with A = 0xAAuy; B = 0xCCuy }
+        |> sbb B
+
+    newState.A
+    |> should equal 0xDE
+
+    (newState.FLAGS &&& FlagMask.C)
+    |> should equal FlagMask.C
+
+[<Test>]
+let ``SBB B while A contains 0xAA, B contains 0x11, and C is set should set A to 0x98 and not set C flag`` () =
+    let newState = 
+        { defaultState with A = 0xAAuy; B = 0x11uy; FLAGS = FlagMask.C }
+        |> sbb B
+
+    newState.A
+    |> should equal 0x98
+
+    (newState.FLAGS &&& FlagMask.C)
+    |> should not' (equal FlagMask.C)
+
+[<Test>]
+let ``SBB B while A contains 0xAA, B contains 0xCC, and C is set should set A to 0xDD and set the C flag`` () =
+    let newState = 
+        { defaultState with A = 0xAAuy; B = 0xCCuy; FLAGS = FlagMask.C }
+        |> sbb B
+
+    newState.A
+    |> should equal 0xDD
+
+    (newState.FLAGS &&& FlagMask.C)
+    |> should equal FlagMask.C
+
+// SBB M
+[<Test>]
+let ``SBB M while A contains 0xAA, HL points to 0x11, and C not set should set A to 0x99 and not set C flag`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 0xBEEF 0x11uy
+
+    let newState = 
+        { defaultState with A = 0xAAuy; H = 0xBEuy; L = 0xEFuy }
+        |> fun state -> sbb_m state memory
+
+    newState.A
+    |> should equal 0x99
+
+    (newState.FLAGS &&& FlagMask.C)
+    |> should not' (equal FlagMask.C)
+
+[<Test>]
+let ``SBB M while A contains 0xAA, HL points to 0xCC, and C not set should set A to 0xDE and set the C flag`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 0xBEEF 0xCCuy
+
+    let newState = 
+        { defaultState with A = 0xAAuy; H = 0xBEuy; L = 0xEFuy  }
+        |> fun state -> sbb_m state memory
+
+    newState.A
+    |> should equal 0xDE
+
+    (newState.FLAGS &&& FlagMask.C)
+    |> should equal FlagMask.C
+
+[<Test>]
+let ``SBB M while A contains 0xAA, HL points to 0x11, and C is set should set A to 0x98 and not set C flag`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 0xBEEF 0x11uy
+
+    let newState = 
+        { defaultState with A = 0xAAuy; H = 0xBEuy; L = 0xEFuy; FLAGS = FlagMask.C }
+        |> fun state -> sbb_m state memory
+
+    newState.A
+    |> should equal 0x98
+
+    (newState.FLAGS &&& FlagMask.C)
+    |> should not' (equal FlagMask.C)
+
+[<Test>]
+let ``SBB M while A contains 0xAA, HL points to 0xCC, and C is set should set A to 0xDD and set the C flag`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 0xBEEF 0xCCuy
+
+    let newState = 
+        { defaultState with A = 0xAAuy; H = 0xBEuy; L = 0xEFuy; FLAGS = FlagMask.C }
+        |> fun state -> sbb_m state memory
+
+    newState.A
+    |> should equal 0xDD
+
+    (newState.FLAGS &&& FlagMask.C)
+    |> should equal FlagMask.C
+
 // ANI
 [<Test>]
 let ``ANI 0xAA while A contains 0x0F should set A to 0x0A`` () =

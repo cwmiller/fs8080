@@ -117,3 +117,25 @@ let mov_m_r register state =
     let address = get16 HL state
     let value = get8 register state
     (incPC 1us state |> incWC 7, [(address, value)])
+
+// Copy value pointed by SP to register and increment SP
+let pop register state memory =
+    let value = {
+        High = fetch (state.SP + 1us) memory;
+        Low = fetch state.SP memory;
+    }
+
+    set16 register value state
+    |> fun state -> { state with SP = state.SP + 2us }
+    |> incPC 1us
+    |> incWC 10
+
+// Copy value in register onto stack
+let push register state =
+    let value = get16 register state
+    let memchanges = [((state.SP - 2us), value.Low); ((state.SP - 1us), value.High)]
+
+    { state with SP = state.SP - 2us }
+    |> incPC 1us
+    |> incWC 11
+    |> fun state -> (state, memchanges)

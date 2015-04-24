@@ -39,10 +39,16 @@ type Instruction =
     | ADD_M
     | ADC of Register8
     | ADC_M
+    | SUB of Register8
+    | SUB_M
+    | SBB of Register8
+    | SBB_M
     | RNZ
+    | POP of Register16
     | JNZ
     | JMP
     | CNZ
+    | PUSH of Register16
     | RZ
     | RET
     | JZ
@@ -50,4 +56,5 @@ type Instruction =
     | CALL
     | RNC
     | JNC
+    | CNC
     | ANI

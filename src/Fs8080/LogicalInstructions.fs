@@ -163,7 +163,7 @@ let add register state =
 
     set8 A sum state
     |> flagSZAP sum
-    |> flagC existing sum
+    |> flagCForAdd existing sum
     |> incPC 1us
     |> incWC 4
 
@@ -175,7 +175,7 @@ let add_m state memory =
 
     set8 A sum state
     |> flagSZAP sum
-    |> flagC existing sum
+    |> flagCForAdd existing sum
     |> incPC 1us
     |> incWC 7
 
@@ -186,7 +186,7 @@ let adc register state =
 
     set8 A sum state
     |> flagSZAP sum
-    |> flagC existing sum
+    |> flagCForAdd existing sum
     |> incPC 1us
     |> incWC 4
 
@@ -198,7 +198,59 @@ let adc_m state memory =
 
     set8 A sum state
     |> flagSZAP sum
-    |> flagC existing sum
+    |> flagCForAdd existing sum
+    |> incPC 1us
+    |> incWC 7
+
+// Decrement A by value in register
+let sub register state =
+    let existing = get8 A state
+    let diff = existing - (get8 register state)
+
+    set8 A diff state
+    |> flagSZAP diff
+    |> flagCForSub existing diff
+    |> incPC 1us
+    |> incWC 4
+
+// Decrement A by value pointed to by HL
+let sub_m state memory =
+    let existing = get8 A state
+
+    let diff =
+        get16 HL state
+        |> fun addr -> fetch addr memory
+        |> (-) existing
+
+    set8 A diff state
+    |> flagSZAP diff
+    |> flagCForSub existing diff
+    |> incPC 1us
+    |> incWC 7
+
+// Decrement A by value in register with carry
+let sbb register state =
+    let existing = get8 A state
+    let diff = existing - (get8 register state) - (state.FLAGS &&& FlagMask.C)
+
+    set8 A diff state
+    |> flagSZAP diff
+    |> flagCForSub existing diff
+    |> incPC 1us
+    |> incWC 4
+
+// Decrement A by value in memory pointed to by HL and Carry
+let sbb_m state memory =
+    let existing = get8 A state
+
+    let diff =
+        get16 HL state
+        |> fun addr -> fetch addr memory
+        |> (-) (existing - (state.FLAGS &&& FlagMask.C))
+
+    set8 A diff state
+    |> flagSZAP diff
+    |> flagCForSub existing diff
     |> incPC 1us
     |> incWC 7
 

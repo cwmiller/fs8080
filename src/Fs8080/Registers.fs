@@ -116,8 +116,14 @@ let flagA (value: byte) state =
     else { state with FLAGS = state.FLAGS &&& ~~~FlagMask.A; }
 
 // Set C flag based on addition result (flag is set is addition overflows)
-let flagC (previousValue: byte) (value: byte) state =
+let flagCForAdd (previousValue: byte) (value: byte) state =
     if (value < previousValue)
+    then { state with FLAGS = state.FLAGS ||| FlagMask.C; }
+    else { state with FLAGS = state.FLAGS &&& ~~~FlagMask.C; }
+
+// Set C flag based on subtraction result (flag is set is addition overflows)
+let flagCForSub (previousValue: byte) (value: byte) state =
+    if (value > previousValue)
     then { state with FLAGS = state.FLAGS ||| FlagMask.C; }
     else { state with FLAGS = state.FLAGS &&& ~~~FlagMask.C; }
 

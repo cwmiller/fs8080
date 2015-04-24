@@ -207,3 +207,59 @@ let ``MOV M, C while HL contains address 0xDEAD and C contains 0xBE should set m
     changes.Head
     |> snd
     |> should equal 0xBE
+
+// POP
+[<Test>]
+let ``POP B while SP points to value 0xFF and SP+1 points to value 0xAA should set BC to 0xAAFF`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 0xBEEF 0xFFuy
+    Array.set memory 0xBEF0 0xAAuy
+
+    { defaultState with SP = { High = 0xBEuy; Low = 0xEFuy }}
+    |> fun state -> pop BC state memory
+    |> fun state -> get16 BC state
+    |> fun v -> should equal 0xAAFF (v.Value)
+
+[<Test>]
+let ``POP B while SP equals 0xBEEF should set SP to 0xBEF1`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 0xBEEF 0xFFuy
+
+    { defaultState with SP = { High = 0xBEuy; Low = 0xEFuy }}
+    |> fun state -> pop BC state memory
+    |> fun state -> get16 SP state
+    |> fun addr -> should equal 0xBEF1 addr.Value
+
+// PUSH
+[<Test>]
+let ``PUSH B while B contains 0xBE and C contains 0xEF should set SP-2 to 0xEF and SP-1 to 0xBE`` () =
+    let (_, changes) =
+        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy }; B = 0xBEuy; C = 0xEFuy }
+        |> push BC
+
+    changes.Length
+    |> should equal 2
+
+    changes.Item 0
+    |> fst
+    |> should equal { High = 0xFFuy; Low = 0xFDuy; }
+
+    changes.Item 0
+    |> snd
+    |> should equal 0xEFuy;
+
+    changes.Item 1
+    |> fst
+    |> should equal { High = 0xFFuy; Low = 0xFEuy; }
+
+    changes.Item 1
+    |> snd
+    |> should equal 0xBEuy;
+    
+[<Test>]
+let ``PUSH B while B should set SP tp SP-2`` () =
+    { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy }; B = 0xBEuy; C = 0xEFuy }
+    |> push BC
+    |> fun (state, _) -> should equal 0xFFFD (state.SP.Value)
+
+    

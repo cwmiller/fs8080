@@ -314,3 +314,60 @@ let ``JNC 0xBEEF while C is set should only incease PC by 3`` () =
 
     jnc { defaultState with FLAGS = FlagMask.C } memory
     |> fun state -> should equal 0x03 (state.PC.Value)
+
+// CNC
+[<Test>]
+let ``CNC 0xBEEF while C flag is not set should push PC+3 to the stack then set PC to 0xBEEF`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 0xAAAA 0xC4uy
+    Array.set memory 0xAAAB 0xEFuy
+    Array.set memory 0xAAAC 0xBEuy
+
+    let (newState, changes) =
+        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; } }
+        |> fun state -> cnc state memory
+
+    newState.PC.Value
+    |> should equal 0xBEEF
+
+    newState.SP.Value
+    |> should equal 0xFFFD
+    
+    changes.Length
+    |> should equal 2 
+
+    changes.Head
+    |> fst
+    |> should equal { High = 0xFFuy; Low = 0xFEuy }
+
+    changes.Head
+    |> snd
+    |> should equal 0xAD
+
+    changes.Tail.Head
+    |> fst
+    |> should equal { High = 0xFFuy; Low = 0xFDuy; }
+
+    changes.Tail.Head
+    |> snd
+    |> should equal 0xAA
+
+[<Test>]
+let ``CNC 0xBEEF while C flag is set should only increment PC`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 0xAAAA 0xC4uy
+    Array.set memory 0xAAAB 0xEFuy
+    Array.set memory 0xAAAC 0xBEuy
+
+    let (newState, changes) =
+        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; }; FLAGS = FlagMask.C }
+        |> fun state -> cnc state memory
+
+    newState.PC.Value
+    |> should equal 0xAAAD
+
+    newState.SP.Value
+    |> should equal 0xFFFF
+    
+    changes.Length
+    |> should equal 0
