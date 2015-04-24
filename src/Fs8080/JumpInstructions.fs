@@ -3,6 +3,7 @@
 open Fs8080.Types
 open Fs8080.Registers
 open Fs8080.Memory
+open Fs8080.Instructions
 
 // RET if Z flag is not set
 let rnz state memory =
@@ -21,10 +22,7 @@ let rnz state memory =
 
 // Jump to address if Z flag is not set
 let jnz state memory =
-    let address = {
-        High = fetch (state.PC + 2us) memory;
-        Low = fetch (state.PC + 1us) memory;
-    }
+    let address = immediateWord state memory
 
     let nextpc = 
         if (state.FLAGS &&& FlagMask.Z) = 0uy
@@ -36,12 +34,8 @@ let jnz state memory =
 
 // Jump to address
 let jmp state memory =
-    let address = {
-        High = fetch (state.PC + 2us) memory;
-        Low = fetch (state.PC + 1us) memory;
-    }
-
-    { state with PC = address }
+    immediateWord state memory
+    |> fun address -> { state with PC = address }
     |> incWC 10        
 
 // RET if Z flag is set
@@ -87,29 +81,20 @@ let jz state memory =
 
 // Push PC to stack and jump to address
 let call state memory =
-    let address = {
-        High = fetch (state.PC + 2us) memory;
-        Low = fetch (state.PC + 1us) memory;
-    }
-
-    let nextpc = state.PC + { High = 0uy; Low = 3uy }
+    let nextpc = state.PC + 3us
 
     let memchanges = [
         (state.SP - 1us), nextpc.Low;
         (state.SP - 2us), nextpc.High;
     ]
 
-    { state with PC = address; SP = state.SP - 2us }
+    immediateWord state memory
+    |> fun address -> { state with PC = address; SP = state.SP - 2us }
     |> incWC 17
     |> fun state -> (state, memchanges)
 
 // CALL if Z is not set
 let cnz state memory =
-    let address = {
-        High = fetch (state.PC + 2us) memory;
-        Low = fetch (state.PC + 1us) memory;
-    }
-
     if (state.FLAGS &&& FlagMask.Z) = 0uy
     then 
         call state memory
@@ -120,11 +105,6 @@ let cnz state memory =
 
 // CALL if Z is set
 let cz state memory =
-    let address = {
-        High = fetch (state.PC + 2us) memory;
-        Low = fetch (state.PC + 1us) memory;
-    }
-
     if (state.FLAGS &&& FlagMask.Z) = FlagMask.Z
     then 
         call state memory
@@ -152,10 +132,7 @@ let rnc state memory =
 let jnc state memory =
     let pc = 
         if state.FLAGS &&& FlagMask.C = 0uy then
-            { 
-                High = (fetch (state.PC+2us) memory);
-                Low = (fetch (state.PC+1us) memory);
-            }
+           immediateWord state memory
         else
             state.PC + 3us
 
@@ -164,11 +141,6 @@ let jnc state memory =
 
 // CALL if C flag is not set
 let cnc state memory =
-    let address = {
-        High = fetch (state.PC + 2us) memory;
-        Low = fetch (state.PC + 1us) memory;
-    }
-
     if (state.FLAGS &&& FlagMask.C) = 0uy
     then 
         call state memory

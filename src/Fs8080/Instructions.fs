@@ -58,3 +58,11 @@ type Instruction =
     | JNC
     | CNC
     | ANI
+
+let immediateByte state memory =
+    fetch (state.PC + 1us) memory
+
+let immediateWord state memory = {
+    High = fetch (state.PC + 2us) memory;
+    Low = fetch (state.PC + 1us) memory;
+}
