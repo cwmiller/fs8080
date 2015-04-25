@@ -6,15 +6,13 @@ open Fs8080.Registers
 open Fs8080.Instructions
 
 // Loads 16 bit value into register BC, DE, HL, or SP
-let lxi register state memory =
-    immediateWord state memory
-    |> fun value -> set16 register value state
+let lxi register value state =
+    set16 register value state
     |> incPC 3us
     |> incWC 10
 
 // Load 16bit value from HL into memory address
-let shld state memory =
-    let address = immediateWord state memory
+let shld (address: DWord) state =
     let memChanges = [
         (address, (get8 L state));
         ((address + 1us), (get8 H state));
@@ -25,9 +23,7 @@ let shld state memory =
     |> fun state -> (state, memChanges)
 
 // Load 16bit value from memory into HL
-let lhld state memory =
-    let address = immediateWord state memory
-
+let lhld address state memory =
     set8 L (fetch address memory) state
     |> set8 H (fetch (address + 1us) memory)
     |> incPC 3us
@@ -42,9 +38,8 @@ let stax register state =
     |> fun state -> state, [(address, state.A)]
 
 // Load 8bit value into register
-let mvi register state memory =
-    immediateByte state memory
-    |> fun value -> set8 register value state
+let mvi register value state  =
+    set8 register value state
     |> incPC 2us
     |> incWC 7
 
@@ -57,26 +52,22 @@ let ldax register state memory =
     |> incWC 7
 
 // Copy value from A to memory address
-let sta state memory =
-    let address = immediateWord state memory
-
+let sta address state =
     incPC 3us state 
     |> incWC 13
     |> fun state -> (state, [(address, state.A)])
 
 // Copy 8bit value into memory address in HL
-let mvi_m state memory =
+let mvi_m value state =
     let address = get16 HL state
-    let value = immediateByte state memory
 
     incPC 2us state
     |> incWC 10
     |> fun state -> (state, [(address, value)])
 
 // Copy contents of memory address into A
-let lda state memory =
-    immediateWord state memory
-    |> fun address -> fetch address memory
+let lda address state memory =
+    fetch address memory
     |> fun value -> set8 A value state
     |> incPC 3us
     |> incWC 13

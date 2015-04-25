@@ -23,8 +23,8 @@ let internal defaultState = {
 
 // LXI
 [<Test>]
-let ``LXI B, 65520 should load 0xFF into B and 0xF0 into C`` () =
-    let newState = lxi BC defaultState [|0x01uy; 0xF0uy; 0xFFuy|]
+let ``LXI B, 0xFFF0 should load 0xFF into B and 0xF0 into C`` () =
+    let newState = lxi BC { High = 0xFFuy; Low = 0xF0uy } defaultState
 
     newState.B
     |> should equal 0xFF
@@ -35,13 +35,9 @@ let ``LXI B, 65520 should load 0xFF into B and 0xF0 into C`` () =
 // SHLD
 [<Test>]
 let ``SHLD 0xBEEF while HL contains 0xDEAD should copy 0xAD to address 0xBEEF and 0xDE to address 0xBEF0`` () =
-    let memory = Array.zeroCreate<byte> 65535
-    Array.set memory 1 0xEFuy
-    Array.set memory 2 0xBEuy
-
     let changes =
         { defaultState with H = 0xDEuy; L = 0xADuy }
-        |> fun state -> shld state memory
+        |> fun state -> shld { High = 0xBEuy; Low = 0xEFuy } state
         |> fun (_, changes) -> changes
 
     changes.Length
@@ -72,7 +68,7 @@ let ``LHLD 0xDEAD while memory address 0xDEAD contains 0xEF and 0xDEAE contains 
     Array.set memory 0xDEAD 0xEFuy
     Array.set memory 0xDEAE 0xBEuy
 
-    let newState = lhld defaultState memory
+    let newState = lhld { High = 0xDEuy; Low = 0xADuy } defaultState memory
 
     newState.H
     |> should equal 0xBE
@@ -103,7 +99,7 @@ let ``STAX B while A contains 0xFE and BC contains 0xAABB with should place valu
 [<Test>]
 let ``MVI B, 255 should set B to 0xFF`` () =
     defaultState
-    |> fun state -> mvi B state [|0x06uy; 0xFFuy|]
+    |> fun state -> mvi B 0xFFuy state
     |> get8 B
     |> should equal 0xFFuy
 
@@ -126,7 +122,7 @@ let ``STA 0xBEEF while A contains 0xFF should set memory address 0xBEEF to 0xFF`
 
     let changes = 
         { defaultState with A = 0xFFuy }
-        |> fun state -> sta state memory
+        |> fun state -> sta { High = 0xBEuy; Low = 0xEFuy } state
         |> fun (_, changes) -> changes.Head
 
     changes
@@ -146,7 +142,7 @@ let ``MVI M, 0xCC while HL contains 0xBEEF should set 0xBEEF to 0xCC`` () =
 
     let changes = 
         { defaultState with H = 0xBEuy; L = 0xEFuy; }
-        |> fun state -> mvi_m state memory
+        |> fun state -> mvi_m 0xcc state
         |> fun (_, changes) -> changes
 
     changes.Length
@@ -168,7 +164,7 @@ let ``LDA 0xBEEF while 0xBEEF contains 0xAB should set A to 0xAB`` () =
     Array.set memory 0x2 0xBEuy
     Array.set memory 0xBEEF 0xABuy
 
-    lda defaultState memory
+    lda { High = 0xBEuy; Low = 0xEFuy } defaultState memory
     |> get8 A
     |> should equal 0xAB
 
@@ -261,5 +257,3 @@ let ``PUSH B while B should set SP tp SP-2`` () =
     { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy }; B = 0xBEuy; C = 0xEFuy }
     |> push BC
     |> fun (state, _) -> should equal 0xFFFD (state.SP.Value)
-
-    

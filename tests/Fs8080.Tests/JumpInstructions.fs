@@ -45,43 +45,26 @@ let ``RNZ while stack points to 0xBEEF and Z flag is set should not set PC to 0x
 // JNZ
 [<Test>]
 let ``JNZ 0xBEEF while Z is not set should set PC to 0xBEEF`` () =
-    let memory = Array.zeroCreate<byte> 65535
-    Array.set memory 1 0xEFuy
-    Array.set memory 2 0xBEuy
-
-    jnz defaultState memory
+    jnz { High = 0xBEuy; Low = 0xEFuy } defaultState
     |> fun state -> should equal 0xBEEF (state.PC.Value)
 
 [<Test>]
 let ``JNZ 0xBEEF while Z is set should only incease PC by 3`` () =
-    let memory = Array.zeroCreate<byte> 65535
-    Array.set memory 1 0xEFuy
-    Array.set memory 2 0xBEuy
-
-    jnz defaultState memory
+    jnz { High = 0xBEuy; Low = 0xEFuy } defaultState
     |> fun state -> should equal 0xBEEF (state.PC.Value)
 
 // JMP
 [<Test>]
 let ``JMP 0xBEEF should set PC to 0xBEEF`` () =
-    let memory = Array.zeroCreate<byte> 65535
-    Array.set memory 1 0xEFuy
-    Array.set memory 2 0xBEuy
-
-    jmp defaultState memory
+    jmp { High = 0xBEuy; Low = 0xEFuy } defaultState
     |> fun state -> should equal 0xBEEF (state.PC.Value)
 
 // CNZ
 [<Test>]
 let ``CNZ 0xBEEF while Z flag is not set should push PC+3 to the stack then set PC to 0xBEEF`` () =
-    let memory = Array.zeroCreate<byte> 65535
-    Array.set memory 0xAAAA 0xC4uy
-    Array.set memory 0xAAAB 0xEFuy
-    Array.set memory 0xAAAC 0xBEuy
-
     let (newState, changes) =
         { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; } }
-        |> fun state -> cnz state memory
+        |> fun state -> cnz { High = 0xBEuy; Low = 0xEFuy } state
 
     newState.PC.Value
     |> should equal 0xBEEF
@@ -110,14 +93,9 @@ let ``CNZ 0xBEEF while Z flag is not set should push PC+3 to the stack then set 
 
 [<Test>]
 let ``CNZ 0xBEEF while Z flag is set should only increment PC`` () =
-    let memory = Array.zeroCreate<byte> 65535
-    Array.set memory 0xAAAA 0xC4uy
-    Array.set memory 0xAAAB 0xEFuy
-    Array.set memory 0xAAAC 0xBEuy
-
     let (newState, changes) =
         { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; }; FLAGS = FlagMask.Z }
-        |> fun state -> cnz state memory
+        |> fun state -> cnz { High = 0xBEuy; Low = 0xEFuy } state
 
     newState.PC.Value
     |> should equal 0xAAAD
@@ -164,34 +142,21 @@ let ``RET while stack points to 0xBEEF should set PC to 0xBEEF`` () =
 // JZ
 [<Test>]
 let ``JZ 0xBEEF while Z is set should set PC to 0xBEEF`` () =
-    let memory = Array.zeroCreate<byte> 65535
-    Array.set memory 1 0xEFuy
-    Array.set memory 2 0xBEuy
-
     { defaultState with FLAGS = FlagMask.Z }
-    |> fun state -> jz state memory
+    |> fun state -> jz { High = 0xBEuy; Low = 0xEFuy } state
     |> fun state -> should equal 0xBEEF (state.PC.Value)
 
 [<Test>]
 let ``JZ 0xBEEF while Z is not set should only incease PC by 3`` () =
-    let memory = Array.zeroCreate<byte> 65535
-    Array.set memory 1 0xEFuy
-    Array.set memory 2 0xBEuy
-
-    jz defaultState memory
+    jz { High = 0xBEuy; Low = 0xEFuy } defaultState
     |> fun state -> should equal 0x03 (state.PC.Value)
 
 // CZ
 [<Test>]
 let ``CZ 0xBEEF while Z flag is set should push PC+3 to the stack then set PC to 0xBEEF`` () =
-    let memory = Array.zeroCreate<byte> 65535
-    Array.set memory 0xAAAA 0xC4uy
-    Array.set memory 0xAAAB 0xEFuy
-    Array.set memory 0xAAAC 0xBEuy
-
     let (newState, changes) =
         { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; }; FLAGS = FlagMask.Z }
-        |> fun state -> cz state memory
+        |> fun state -> cz { High = 0xBEuy; Low = 0xEFuy } state
 
     newState.PC.Value
     |> should equal 0xBEEF
@@ -220,14 +185,9 @@ let ``CZ 0xBEEF while Z flag is set should push PC+3 to the stack then set PC to
 
 [<Test>]
 let ``CZ 0xBEEF while Z flag is not set should only increment PC`` () =
-    let memory = Array.zeroCreate<byte> 65535
-    Array.set memory 0xAAAA 0xC4uy
-    Array.set memory 0xAAAB 0xEFuy
-    Array.set memory 0xAAAC 0xBEuy
-
     let (newState, changes) =
         { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; } }
-        |> fun state -> cz state memory
+        |> fun state -> cz { High = 0xBEuy; Low = 0xEFuy } state
 
     newState.PC.Value
     |> should equal 0xAAAD
@@ -241,14 +201,9 @@ let ``CZ 0xBEEF while Z flag is not set should only increment PC`` () =
 // CALL
 [<Test>]
 let ``CALL 0xBEEF should push PC+3 to the stack then set PC to 0xBEEF`` () =
-    let memory = Array.zeroCreate<byte> 65535
-    Array.set memory 0xAAAA 0xCDuy
-    Array.set memory 0xAAAB 0xEFuy
-    Array.set memory 0xAAAC 0xBEuy
-
     let (newState, changes) =
         { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; } }
-        |> fun state -> call state memory
+        |> fun state -> call { High = 0xBEuy; Low = 0xEFuy } state
 
     newState.PC.Value
     |> should equal 0xBEEF
@@ -299,33 +254,20 @@ let ``RNC while stack points to 0xBEEF and C flag is set should not set PC to 0x
 // JNC
 [<Test>]
 let ``JNC 0xBEEF while C is not set should set PC to 0xBEEF`` () =
-    let memory = Array.zeroCreate<byte> 65535
-    Array.set memory 1 0xEFuy
-    Array.set memory 2 0xBEuy
-
-    jnc defaultState memory
+    jnc { High = 0xBEuy; Low = 0xEFuy } defaultState
     |> fun state -> should equal 0xBEEF (state.PC.Value)
 
 [<Test>]
 let ``JNC 0xBEEF while C is set should only incease PC by 3`` () =
-    let memory = Array.zeroCreate<byte> 65535
-    Array.set memory 1 0xEFuy
-    Array.set memory 2 0xBEuy
-
-    jnc { defaultState with FLAGS = FlagMask.C } memory
+    jnc { High = 0xBEuy; Low = 0xEFuy } { defaultState with FLAGS = FlagMask.C }
     |> fun state -> should equal 0x03 (state.PC.Value)
 
 // CNC
 [<Test>]
 let ``CNC 0xBEEF while C flag is not set should push PC+3 to the stack then set PC to 0xBEEF`` () =
-    let memory = Array.zeroCreate<byte> 65535
-    Array.set memory 0xAAAA 0xC4uy
-    Array.set memory 0xAAAB 0xEFuy
-    Array.set memory 0xAAAC 0xBEuy
-
     let (newState, changes) =
         { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; } }
-        |> fun state -> cnc state memory
+        |> fun state -> cnc { High = 0xBEuy; Low = 0xEFuy } state
 
     newState.PC.Value
     |> should equal 0xBEEF
@@ -354,14 +296,9 @@ let ``CNC 0xBEEF while C flag is not set should push PC+3 to the stack then set 
 
 [<Test>]
 let ``CNC 0xBEEF while C flag is set should only increment PC`` () =
-    let memory = Array.zeroCreate<byte> 65535
-    Array.set memory 0xAAAA 0xC4uy
-    Array.set memory 0xAAAB 0xEFuy
-    Array.set memory 0xAAAC 0xBEuy
-
     let (newState, changes) =
         { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; }; FLAGS = FlagMask.C }
-        |> fun state -> cnc state memory
+        |> fun state -> cnc { High = 0xBEuy; Low = 0xEFuy } state
 
     newState.PC.Value
     |> should equal 0xAAAD

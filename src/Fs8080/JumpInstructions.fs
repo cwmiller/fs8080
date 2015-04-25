@@ -21,9 +21,7 @@ let rnz state memory =
         |> incWC 5
 
 // Jump to address if Z flag is not set
-let jnz state memory =
-    let address = immediateWord state memory
-
+let jnz (address: DWord) state =
     let nextpc = 
         if (state.FLAGS &&& FlagMask.Z) = 0uy
         then address.Value
@@ -33,9 +31,8 @@ let jnz state memory =
     |> incWC 10
 
 // Jump to address
-let jmp state memory =
-    immediateWord state memory
-    |> fun address -> { state with PC = address }
+let jmp address state =
+    { state with PC = address }
     |> incWC 10        
 
 // RET if Z flag is set
@@ -65,12 +62,7 @@ let ret state memory =
     |> incWC 1
 
 // Jump to address if Z flag is set
-let jz state memory =
-    let address = {
-        High = fetch (state.PC + 2us) memory;
-        Low = fetch (state.PC + 1us) memory;
-    }
-
+let jz (address: DWord) state =
     let nextpc = 
         if (state.FLAGS &&& FlagMask.Z) = FlagMask.Z
         then address.Value
@@ -80,7 +72,7 @@ let jz state memory =
     |> incWC 1
 
 // Push PC to stack and jump to address
-let call state memory =
+let call address state =
     let nextpc = state.PC + 3us
 
     let memchanges = [
@@ -88,26 +80,25 @@ let call state memory =
         (state.SP - 2us), nextpc.High;
     ]
 
-    immediateWord state memory
-    |> fun address -> { state with PC = address; SP = state.SP - 2us }
+    { state with PC = address; SP = state.SP - 2us }
     |> incWC 17
     |> fun state -> (state, memchanges)
 
 // CALL if Z is not set
-let cnz state memory =
+let cnz address state =
     if (state.FLAGS &&& FlagMask.Z) = 0uy
     then 
-        call state memory
+        call address state
     else
         incPC 3us state
         |> incWC 11
         |> fun state -> state, []
 
 // CALL if Z is set
-let cz state memory =
+let cz address state =
     if (state.FLAGS &&& FlagMask.Z) = FlagMask.Z
     then 
-        call state memory
+        call address state
     else
         incPC 3us state
         |> incWC 11
@@ -129,10 +120,10 @@ let rnc state memory =
         |> incWC 5
 
 // Jump to address if C flag is not set
-let jnc state memory =
+let jnc address state =
     let pc = 
         if state.FLAGS &&& FlagMask.C = 0uy then
-           immediateWord state memory
+           address
         else
             state.PC + 3us
 
@@ -140,10 +131,10 @@ let jnc state memory =
     |> incWC 10
 
 // CALL if C flag is not set
-let cnc state memory =
+let cnc address state =
     if (state.FLAGS &&& FlagMask.C) = 0uy
     then 
-        call state memory
+        call address state
     else
         incPC 3us state
         |> incWC 11

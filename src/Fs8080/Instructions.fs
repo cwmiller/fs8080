@@ -7,12 +7,12 @@ open Fs8080.Memory
 // List of supported instructions
 type Instruction =
     | NOP
-    | LXI of Register16
+    | LXI of Register16 * DWord
     | STAX of Register16
     | INX of Register16
     | INR of Register8
     | DCR of Register8
-    | MVI of Register8
+    | MVI of Register8 * byte
     | RLC
     | DAD of Register16
     | LDAX of Register16
@@ -20,16 +20,16 @@ type Instruction =
     | RRC
     | RAL
     | RAR
-    | SHLD
+    | SHLD of DWord
     | DAA
-    | LHLD
+    | LHLD of DWord
     | CMA
-    | STA
+    | STA of DWord
     | INR_M
     | DCR_M
-    | MVI_M
+    | MVI_M of byte
     | STC
-    | LDA
+    | LDA of DWord
     | CMC
     | MOV_R_R of Register8 * Register8
     | MOV_R_M of Register8
@@ -45,24 +45,16 @@ type Instruction =
     | SBB_M
     | RNZ
     | POP of Register16
-    | JNZ
-    | JMP
-    | CNZ
+    | JNZ of DWord
+    | JMP of DWord
+    | CNZ of DWord
     | PUSH of Register16
     | RZ
     | RET
-    | JZ
-    | CZ
-    | CALL
+    | JZ of DWord
+    | CZ of DWord
+    | CALL of DWord
     | RNC
-    | JNC
-    | CNC
+    | JNC of DWord
+    | CNC of DWord
     | ANI
-
-let immediateByte state memory =
-    fetch (state.PC + 1us) memory
-
-let immediateWord state memory = {
-    High = fetch (state.PC + 2us) memory;
-    Low = fetch (state.PC + 1us) memory;
-}

@@ -12,15 +12,25 @@ open Fs8080.JumpInstructions
 exception UnknownInstruction of byte
 
 // Determines an instruction from its byte value
-let decode byte =
-    match byte with
+let decode state memory =
+    let opcode = fetch state.PC memory
+
+    let ib = 
+        fetch (state.PC+1us) memory
+
+    let iw = 
+        let high = fetch (state.PC + 2us) memory
+        let low = fetch (state.PC + 1us) memory
+        { High = high; Low = low }
+
+    match opcode with
         | 0x00uy -> Instruction.NOP             // No operation
-        | 0x01uy -> Instruction.LXI(BC)         // Load 16bit value into BC
+        | 0x01uy -> Instruction.LXI(BC, iw)     // Load 16bit value into BC
         | 0x02uy -> Instruction.STAX(BC)        // Copy 8bit value from A into address BC
         | 0x03uy -> Instruction.INX(BC)         // Increment value in BC by 1
         | 0x04uy -> Instruction.INR(B)          // Increment value in B by 1
         | 0x05uy -> Instruction.DCR(B)          // Decrement value in B by 1
-        | 0x06uy -> Instruction.MVI(B)          // Load 8bit value into B
+        | 0x06uy -> Instruction.MVI(B, ib)      // Load 8bit value into B
         | 0x07uy -> Instruction.RLC             // Rotate A left
         | 0x08uy -> Instruction.NOP             // Unspecified
         | 0x09uy -> Instruction.DAD(BC)         // Add BC to HL
@@ -28,15 +38,15 @@ let decode byte =
         | 0x0Buy -> Instruction.DCX(BC)         // Decrement value in BC by 1
         | 0x0Cuy -> Instruction.INR(C)          // Increment value in C by 1
         | 0x0Duy -> Instruction.DCR(C)          // Decrement value in C by 1
-        | 0x0Euy -> Instruction.MVI(C)          // Load 8bit value into C
+        | 0x0Euy -> Instruction.MVI(C, ib)      // Load 8bit value into C
         | 0x0Fuy -> Instruction.RRC             // Rotate A right
         | 0x10uy -> Instruction.NOP             // Unspecified
-        | 0x11uy -> Instruction.LXI(DE)         // Load 16bit value into DE
+        | 0x11uy -> Instruction.LXI(DE, iw)     // Load 16bit value into DE
         | 0x12uy -> Instruction.STAX(DE)        // Copy 8bit value from A into address DE
         | 0x13uy -> Instruction.INX(DE)         // Increment value in DE by 1
         | 0x14uy -> Instruction.INR(D)          // Increment value in D by 1
         | 0x15uy -> Instruction.DCR(D)          // Decrement value in D by 1
-        | 0x16uy -> Instruction.MVI(D)          // Load 8bit value into D
+        | 0x16uy -> Instruction.MVI(D, ib)      // Load 8bit value into D
         | 0x17uy -> Instruction.RAL             // Rotate A left through carry
         | 0x18uy -> Instruction.NOP             // Unspecified
         | 0x19uy -> Instruction.DAD(DE)         // Add DE to HL
@@ -44,39 +54,39 @@ let decode byte =
         | 0x1Buy -> Instruction.DCX(DE)         // Decrement value in DE by 1
         | 0x1Cuy -> Instruction.INR(E)          // Increment value in E by 1
         | 0x1Duy -> Instruction.DCR(E)          // Decrement value in E by 1
-        | 0x1Euy -> Instruction.MVI(E)          // Load 8bit value into E
+        | 0x1Euy -> Instruction.MVI(E, ib)      // Load 8bit value into E
         | 0x1Fuy -> Instruction.RAR             // Rotate A right through carry
         | 0x20uy -> Instruction.NOP             // Unspecified
-        | 0x21uy -> Instruction.LXI(HL)         // Load 16bit value into HL
-        | 0x22uy -> Instruction.SHLD            // Copy 16bit value from HL into memory address
+        | 0x21uy -> Instruction.LXI(HL, iw)     // Load 16bit value into HL
+        | 0x22uy -> Instruction.SHLD(iw)        // Copy 16bit value from HL into memory address
         | 0x23uy -> Instruction.INX(HL)         // Increment value in HL by 1
         | 0x24uy -> Instruction.INR(H)          // Increment value in H by 1
         | 0x25uy -> Instruction.DCR(H)          // Decrement value in H by 1
-        | 0x26uy -> Instruction.MVI(H)          // Load 8but value into H
+        | 0x26uy -> Instruction.MVI(H, ib)      // Load 8but value into H
         | 0x27uy -> Instruction.DAA             // Not sure
         | 0x28uy -> Instruction.NOP             // Unspecified
         | 0x29uy -> Instruction.DAD(HL)         // Add HL to HL
-        | 0x2Auy -> Instruction.LHLD            // Load 16bit value from memory into HL
+        | 0x2Auy -> Instruction.LHLD(iw)        // Load 16bit value from memory into HL
         | 0x2Buy -> Instruction.DCX(HL)         // Decrement value in HL by 1
         | 0x2Cuy -> Instruction.INR(L)          // Increment value in L by 1
         | 0x2Duy -> Instruction.DCR(L)          // Decrement value in L by 1
-        | 0x2Euy -> Instruction.MVI(L)          // Load 8bit value into L
+        | 0x2Euy -> Instruction.MVI(L, ib)      // Load 8bit value into L
         | 0x2Fuy -> Instruction.CMA             // Set A to NOT A
         | 0x30uy -> Instruction.NOP             // Unspecified
-        | 0x31uy -> Instruction.LXI(SP)         // Load 16bit value into SP
-        | 0x32uy -> Instruction.STA             // Copy value from A to memory address
+        | 0x31uy -> Instruction.LXI(SP, iw)     // Load 16bit value into SP
+        | 0x32uy -> Instruction.STA(iw)         // Copy value from A to memory address
         | 0x33uy -> Instruction.INX(SP)         // Increment value in SP by 1
         | 0x34uy -> Instruction.INR_M           // Increment value in memory address in HL
         | 0x35uy -> Instruction.DCR_M           // Decrement value in memory address in HL
-        | 0x36uy -> Instruction.MVI_M           // Copy 8bit value into the memory address in HL
+        | 0x36uy -> Instruction.MVI_M(ib)       // Copy 8bit value into the memory address in HL
         | 0x37uy -> Instruction.STC             // Set C flag
         | 0x38uy -> Instruction.NOP             // Unspecified
         | 0x39uy -> Instruction.DAD(SP)         // Add SP to HL
-        | 0x3Auy -> Instruction.LDA             // Copy 8bit value in memory address to A
+        | 0x3Auy -> Instruction.LDA(iw)         // Copy 8bit value in memory address to A
         | 0x3Buy -> Instruction.DCX(SP)         // Decrement value in SP by 1
         | 0x3Cuy -> Instruction.INR(A)          // Increment value in A by 1
         | 0x3Duy -> Instruction.DCR(A)          // Decrement value in A by 1
-        | 0x3Euy -> Instruction.MVI(A)          // Load 8bit value into A
+        | 0x3Euy -> Instruction.MVI(A, ib)      // Load 8bit value into A
         | 0x3Fuy -> Instruction.CMC             // NOT the C flag
         | 0x40uy -> Instruction.MOV_R_R(B, B)   // Copy 8bit value from B to B
         | 0x41uy -> Instruction.MOV_R_R(B, C)   // Copy 8bit value from C to B
@@ -177,50 +187,50 @@ let decode byte =
 
         | 0xC0uy -> Instruction.RNZ             // RET if Z flag is not set
         | 0xC1uy -> Instruction.POP(BC)         // POP stack to BC
-        | 0xC2uy -> Instruction.JNZ             // Jump to memory address if Z flag is not set
-        | 0xC3uy -> Instruction.JMP             // Jump to memory address
-        | 0xC4uy -> Instruction.CNZ             // CALL memory address if Z flag is not set
+        | 0xC2uy -> Instruction.JNZ(iw)         // Jump to memory address if Z flag is not set
+        | 0xC3uy -> Instruction.JMP(iw)         // Jump to memory address
+        | 0xC4uy -> Instruction.CNZ(iw)         // CALL memory address if Z flag is not set
         | 0xC5uy -> Instruction.PUSH(BC)        // PUSH stack with value in BC
 
 
         | 0xC8uy -> Instruction.RZ              // RET if Z flag is set
         | 0xC9uy -> Instruction.RET             // Pop stack to PC and jump back
-        | 0xCAuy -> Instruction.JZ              // Jump to memory address if Z flag is set
-        | 0xCBuy -> Instruction.JMP             // Alernate for JMP (but shouldn't be used)
-        | 0xCCuy -> Instruction.CZ              // CALL memory address if Z flag is set
-        | 0xCDuy -> Instruction.CALL            // Push PC to stack and jump to address
+        | 0xCAuy -> Instruction.JZ(iw)          // Jump to memory address if Z flag is set
+        | 0xCBuy -> Instruction.JMP(iw)         // Alernate for JMP (but shouldn't be used)
+        | 0xCCuy -> Instruction.CZ(iw)          // CALL memory address if Z flag is set
+        | 0xCDuy -> Instruction.CALL(iw)        // Push PC to stack and jump to address
 
         | 0xD0uy -> Instruction.RNC             // RET if C flag not set
         | 0xD1uy -> Instruction.POP(DE)         // POP stack to DE
-        | 0xD2uy -> Instruction.JNC             // Jump to memory address if C flag is not set
+        | 0xD2uy -> Instruction.JNC(iw)         // Jump to memory address if C flag is not set
 
-        | 0xD4uy -> Instruction.CNC             // CALL memory address if C flag is not set
+        | 0xD4uy -> Instruction.CNC(iw)         // CALL memory address if C flag is not set
         | 0xD5uy -> Instruction.PUSH(DE)        // PUSH stack with value in DE
         
-        | 0xDDuy -> Instruction.CALL            // Alternative for CALL (but shouldn't be used)
+        | 0xDDuy -> Instruction.CALL(iw)        // Alternative for CALL (but shouldn't be used)
 
         | 0xE1uy -> Instruction.POP(HL)         // POP stack to HL
 
         | 0xE5uy -> Instruction.PUSH(HL)        // PUSH stack with value in H
         | 0xE6uy -> Instruction.ANI             // AND A against 8bit value
 
-        | 0xEDuy -> Instruction.CALL            // Alternative for CALL (but shouldn't be used)
+        | 0xEDuy -> Instruction.CALL(iw)        // Alternative for CALL (but shouldn't be used)
 
-        | 0xFDuy -> Instruction.CALL            // Alternative for CALL (but shouldn't be used)
+        | 0xFDuy -> Instruction.CALL(iw)        // Alternative for CALL (but shouldn't be used)
 
-        | _ -> raise (UnknownInstruction(byte))
+        | _ -> raise (UnknownInstruction(opcode))
 
 // Carries out the given instruction
 // Returns the post-execution state along with a list of changes to perform on memory
 let execute instruction state memory =
     match instruction with
         | NOP                   -> nop state, []
-        | LXI(reg)              -> lxi reg state memory, []
+        | LXI(reg, value)       -> lxi reg value state, []
         | STAX(reg)             -> stax reg state
         | INX(reg)              -> inx reg state, []
         | INR(reg)              -> inr reg state, []
         | DCR(reg)              -> dcr reg state, []
-        | MVI(reg)              -> mvi reg state memory, []
+        | MVI(reg, value)       -> mvi reg value state, []
         | RLC                   -> rlc state, []
         | DAD(reg)              -> dad reg state, []
         | LDAX(reg)             -> ldax reg state memory, []
@@ -228,16 +238,16 @@ let execute instruction state memory =
         | RRC                   -> rrc state, []
         | RAL                   -> ral state, []
         | RAR                   -> rar state, []
-        | SHLD                  -> shld state memory
+        | SHLD(address)         -> shld address state
         | DAA                   -> daa state, []
-        | LHLD                  -> lhld state memory, []
+        | LHLD(address)         -> lhld address state memory, []
         | CMA                   -> cma state, []
-        | STA                   -> sta state memory
+        | STA(address)          -> sta address state
         | INR_M                 -> inr_m state memory
         | DCR_M                 -> dcr_m state memory
-        | MVI_M                 -> mvi_m state memory
+        | MVI_M(value)          -> mvi_m value state
         | STC                   -> stc state, []
-        | LDA                   -> lda state memory, []
+        | LDA(address)          -> lda address state memory, []
         | CMC                   -> cmc state, []
         | MOV_R_R(dest, src)    -> mov_r_r dest src state, []
         | MOV_R_M(reg)          -> mov_r_m reg state memory, []
@@ -253,24 +263,23 @@ let execute instruction state memory =
         | SBB_M                 -> sbb_m state memory, []
         | RNZ                   -> rnz state memory, []
         | POP(reg)              -> pop reg state memory, []
-        | JNZ                   -> jnz state memory, []
-        | JMP                   -> jmp state memory, []
-        | CNZ                   -> cnz state memory
+        | JNZ(address)          -> jnz address state, []
+        | JMP(address)          -> jmp address state, []
+        | CNZ(address)          -> cnz address state
         | PUSH(reg)             -> push reg state
         | RZ                    -> rz state memory, []
         | RET                   -> ret state memory, []
-        | JZ                    -> jz state memory, []
-        | CZ                    -> cz state memory
-        | CALL                  -> call state memory
+        | JZ(address)           -> jz address state, []
+        | CZ(address)           -> cz address state
+        | CALL(address)         -> call address state 
         | RNC                   -> rnc state memory, []
-        | JNC                   -> jnc state memory, []
-        | CNC                   -> cnc state memory
+        | JNC(address)          -> jnc address state, []
+        | CNC(address)          -> cnc address state
         | ANI                   -> ani state memory, []
 
 // fetch-decode-execute cycle! Where all the magic begins.
 let rec cycle state memory =
-    fetch state.PC memory
-    |> decode
+    decode state memory
     |> fun(instruction) -> execute instruction state memory
     |> fun (state, changes) ->
         List.iter (fun (addr, value) -> store addr value memory) changes

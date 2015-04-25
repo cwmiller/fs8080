@@ -29,9 +29,7 @@ let dcr register state =
     |> incPC 1us
     |> incWC 5
 
-// Not sure what DAA is.
-// According to http://pastraiser.com/cpu/i8080/i8080_opcodes.html it alters all FLAGS,
-// but I can't find any details on it.
+// TODO
 let daa state =
     incPC 1us state
     |> incWC 4
