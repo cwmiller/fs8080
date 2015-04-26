@@ -513,13 +513,119 @@ let ``SBB M while A contains 0xAA, HL points to 0xCC, and C is set should set A 
     (newState.FLAGS &&& FlagMask.C)
     |> should equal FlagMask.C
 
+// ANA
+[<Test>]
+let ``ANA B while A contains 0xF0 and B contains 0x0F should set A to 0x00`` () =
+    { defaultState with A = 0xF0uy; B = 0x0Fuy }
+    |> ana B
+    |> fun state -> should equal 0x00 (state.A)
+
+[<Test>]
+let ``ANA M while A contains 0xF0 and HL points to 0x0F should set A to 0x00`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 0xBEEF 0x0Fuy
+
+    { defaultState with A = 0xF0uy; H = 0xBEuy; L = 0xEFuy }
+    |> fun state -> ana_m state memory
+    |> fun state -> should equal 0x00 (state.A)
+
+// XRA
+[<Test>]
+let ``XRA B while A contains 0xF0 and B contains 0x0F should set A to 0xFF`` () =
+    { defaultState with A = 0xF0uy; B = 0x0Fuy }
+    |> xra B
+    |> fun state -> should equal 0xFF (state.A)
+
+[<Test>]
+let ``XRA M while A contains 0xF0 and HL points to 0x0F should set A to 0xFF`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 0xBEEF 0x0Fuy
+
+    { defaultState with A = 0xF0uy; H = 0xBEuy; L = 0xEFuy }
+    |> fun state -> xra_m state memory
+    |> fun state -> should equal 0xFF (state.A)
+
+// ORA
+[<Test>]
+let ``ORA B while A contains 0xF0 and B contains 0x0F should set A to 0xFF`` () =
+    { defaultState with A = 0xF0uy; B = 0x0Fuy }
+    |> ora B
+    |> fun state -> should equal 0xFF (state.A)
+
+[<Test>]
+let ``ORA M while A contains 0xF0 and HL points to 0x0F should set A to 0xFF`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 0xBEEF 0x0Fuy
+
+    { defaultState with A = 0xF0uy; H = 0xBEuy; L = 0xEFuy }
+    |> fun state -> ora_m state memory
+    |> fun state -> should equal 0xFF (state.A)
+
+// CMP
+[<Test>]
+let ``CMP B while A contains 0xF0 and B contains 0xF0 should set Z flag`` () =
+    { defaultState with A = 0xF0uy; B = 0xF0uy }
+    |> cmp B
+    |> fun state -> should equal FlagMask.Z (state.FLAGS &&& FlagMask.Z)
+
+[<Test>]
+let ``CMP M while A contains 0xF0 and HL points to 0xF0 should set Z flag`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 0xBEEF 0xF0uy
+
+    { defaultState with A = 0xF0uy; H = 0xBEuy; L = 0xEFuy }
+    |> fun state -> cmp_m state memory
+    |> fun state -> should equal FlagMask.Z (state.FLAGS &&& FlagMask.Z)
+
+// ADI
+[<Test>]
+let ``ADI 0xCC while A contains 0xDD should set A to 0xA9`` () =
+    { defaultState with A = 0xDDuy }
+    |> adi 0xCCuy
+    |> fun state -> should equal 0xA9 (state.A)
+
+// ACI
+[<Test>]
+let ``ACI 0xCC while A contains 0xDD and C flag is set should set A to 0xAA`` () =
+    { defaultState with A = 0xDDuy; FLAGS = FlagMask.C }
+    |> aci 0xCCuy
+    |> fun state -> should equal 0xAA (state.A)
+
+// SUI
+[<Test>]
+let ``SUI 0xCC while A contains 0xDD should set A to 0x11`` () =
+    { defaultState with A = 0xDDuy }
+    |> sui 0xCCuy
+    |> fun state -> should equal 0x11 (state.A)
+
 // ANI
 [<Test>]
 let ``ANI 0xAA while A contains 0x0F should set A to 0x0A`` () =
-    let memory = Array.zeroCreate<byte> 65535
-    Array.set memory 1 0xAAuy
-
     { defaultState with A = 0x0Fuy }
-    |> fun state -> ani state memory
+    |> ani 0xAAuy
     |> get8 A
     |> should equal 0x0A
+
+// XRI
+[<Test>]
+let ``XRI 0xAA while A contains 0x0F should set A to 0xA5`` () =
+    { defaultState with A = 0x0Fuy }
+    |> xri 0xAAuy
+    |> get8 A
+    |> should equal 0xA5
+
+// ORI
+[<Test>]
+let ``ORI 0xAA while A contains 0x0F should set A to 0xAF`` () =
+    { defaultState with A = 0x0Fuy }
+    |> ori 0xAAuy
+    |> get8 A
+    |> should equal 0xAF
+
+// CPI
+[<Test>]
+let ``CPI 0xAA while A contains 0xAA should set Z flag`` () =
+    { defaultState with A = 0xAAuy }
+    |> cpi 0xAAuy
+    |> fun state -> state.FLAGS &&& FlagMask.Z
+    |> fun flag -> should equal FlagMask.Z (flag)

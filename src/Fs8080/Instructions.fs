@@ -43,18 +43,33 @@ type Instruction =
     | SUB_M
     | SBB of Register8
     | SBB_M
+    | ANA of Register8
+    | ANA_M
+    | XRA of Register8
+    | XRA_M
+    | ORA of Register8
+    | ORA_M
+    | CMP of Register8
+    | CMP_M
     | RNZ
     | POP of Register16
     | JNZ of DWord
     | JMP of DWord
     | CNZ of DWord
     | PUSH of Register16
+    | ADI of byte
     | RZ
     | RET
     | JZ of DWord
     | CZ of DWord
     | CALL of DWord
+    | ACI of byte 
     | RNC
     | JNC of DWord
     | CNC of DWord
-    | ANI
+    | SUI of byte
+    | SBI of byte
+    | ANI of byte
+    | XRI of byte
+    | ORI of byte
+    | CPI of byte

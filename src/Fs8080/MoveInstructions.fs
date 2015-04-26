@@ -5,13 +5,13 @@ open Fs8080.Memory
 open Fs8080.Registers
 open Fs8080.Instructions
 
-// Loads 16 bit value into register BC, DE, HL, or SP
+// Loads 16bit value into register BC, DE, HL, or SP
 let lxi register value state =
     set16 register value state
     |> incPC 3us
     |> incWC 10
 
-// Load 16bit value from HL into memory address
+// Loads 16bit value from HL into memory
 let shld (address: DWord) state =
     let memChanges = [
         (address, (get8 L state));
@@ -22,7 +22,7 @@ let shld (address: DWord) state =
     |> incWC 16
     |> fun state -> (state, memChanges)
 
-// Load 16bit value from memory into HL
+// Loads 16bit value from memory into HL
 let lhld address state memory =
     set8 L (fetch address memory) state
     |> set8 H (fetch (address + 1us) memory)

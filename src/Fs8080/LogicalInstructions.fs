@@ -252,13 +252,179 @@ let sbb_m state memory =
     |> incPC 1us
     |> incWC 7
 
-// AND 8bit value against A
-let ani state memory =
-    let value = 
-        fetch (state.PC + 1us) memory
+// A = A AND register
+let ana register state =
+    let value =
+        get8 register state
         |> (&&&) state.A
 
     set8 A value state
     |> flagSZAP value
+    |> fun state -> { state with FLAGS = state.FLAGS &&& ~~~FlagMask.C } // Always clear carry
+    |> incPC 1us
+    |> incWC 4
+
+// A = A AND (HL)
+let ana_m state memory =
+    let value =
+        get16 HL state
+        |> fun address -> fetch address memory
+        |> (&&&) state.A
+
+    set8 A value state
+    |> flagSZAP value
+    |> fun state -> { state with FLAGS = state.FLAGS &&& ~~~FlagMask.C } // Always clear carry
+    |> incPC 1us
+    |> incWC 7
+
+// A = A XOR register
+let xra register state =
+    let value =
+        get8 register state
+        |> (^^^) state.A
+
+    set8 A value state
+    |> flagSZAP value
+    |> fun state -> { state with FLAGS = state.FLAGS &&& ~~~FlagMask.C } // Always clear carry
+    |> incPC 1us
+    |> incWC 4
+
+// A = A XOR (HL)
+let xra_m state memory =
+    let value =
+        get16 HL state
+        |> fun address -> fetch address memory
+        |> (^^^) state.A
+
+    set8 A value state
+    |> flagSZAP value
+    |> fun state -> { state with FLAGS = state.FLAGS &&& ~~~FlagMask.C } // Always clear carry
+    |> incPC 1us
+    |> incWC 7
+
+// A = A OR register
+let ora register state =
+    let value =
+        get8 register state
+        |> (|||) state.A
+
+    set8 A value state
+    |> flagSZAP value
+    |> fun state -> { state with FLAGS = state.FLAGS &&& ~~~FlagMask.C } // Always clear carry
+    |> incPC 1us
+    |> incWC 4
+
+// A = A OR (HL)
+let ora_m state memory =
+    let value =
+        get16 HL state
+        |> fun address -> fetch address memory
+        |> (|||) state.A
+
+    set8 A value state
+    |> flagSZAP value
+    |> fun state -> { state with FLAGS = state.FLAGS &&& ~~~FlagMask.C } // Always clear carry
+    |> incPC 1us
+    |> incWC 7
+
+// A = A AND byte
+let ani byte state =
+    let value = state.A &&& byte
+
+    set8 A value state
+    |> flagSZAP value
+    |> fun state -> { state with FLAGS = state.FLAGS &&& ~~~FlagMask.C } // Always clear carry
+    |> incPC 2us
+    |> incWC 7
+
+// Compare register to A
+let cmp register state =
+    // All this needs to do is set FLAGS based on the difference
+    let diff = state.A - (get8 register state)
+
+    flagSZAP diff state
+    |> flagCForSub state.A diff
+    |> incPC 1us
+    |> incWC 4
+
+// Compare (HL) to A
+let cmp_m state memory =
+    // All this needs to do is set FLAGS based on the difference
+    let diff = 
+        get16 HL state
+        |> fun address -> fetch address memory
+        |> fun amount -> state.A - amount
+    
+    flagSZAP diff state
+    |> flagCForSub state.A diff
+    |> incPC 1us
+    |> incWC 7
+
+// A = A + byte
+let adi byte state =
+    let sum = state.A + byte
+
+    set8 A sum state
+    |> flagSZAP sum
+    |> flagCForAdd state.A sum
+    |> incPC 2us
+    |> incWC 7
+
+// A = A + byte with Carry
+let aci byte state =
+    let sum = state.A + byte + (state.FLAGS &&& FlagMask.C)
+
+    set8 A sum state
+    |> flagSZAP sum
+    |> flagCForAdd state.A sum
+    |> incPC 2us
+    |> incWC 7
+
+// A = A - byte
+let sui byte state =
+    let diff = state.A - byte
+
+    set8 A diff state
+    |> flagSZAP diff
+    |> flagCForAdd state.A diff
+    |> incPC 2us
+    |> incWC 7
+
+// A = A - byte with Borrow
+let sbi byte state =
+    let diff = state.A - (byte + (state.FLAGS &&& FlagMask.C))
+
+    set8 A diff state
+    |> flagSZAP diff
+    |> flagCForAdd state.A diff
+    |> incPC 2us
+    |> incWC 7
+
+// A = A XOR byte
+let xri byte state =
+    let result = state.A ^^^ byte
+
+    set8 A result state
+    |> flagSZAP result
+    |> fun state -> { state with FLAGS = state.FLAGS &&& ~~~FlagMask.C } // Always clear carry
+    |> incPC 2us
+    |> incWC 7
+
+// A = A OR byte
+let ori byte state =
+    let result = state.A ||| byte
+
+    set8 A result state
+    |> flagSZAP result
+    |> fun state -> { state with FLAGS = state.FLAGS &&& ~~~FlagMask.C } // Always clear carry
+    |> incPC 2us
+    |> incWC 7
+
+// Compare A with byte
+let cpi byte state =
+    let diff = state.A - byte
+
+    flagSZAP diff state
+    |> flagCForSub state.A diff
     |> incPC 2us
     |> incWC 7

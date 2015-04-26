@@ -25,198 +25,238 @@ let decode state memory =
 
     match opcode with
         | 0x00uy -> Instruction.NOP             // No operation
-        | 0x01uy -> Instruction.LXI(BC, iw)     // Load 16bit value into BC
-        | 0x02uy -> Instruction.STAX(BC)        // Copy 8bit value from A into address BC
-        | 0x03uy -> Instruction.INX(BC)         // Increment value in BC by 1
-        | 0x04uy -> Instruction.INR(B)          // Increment value in B by 1
-        | 0x05uy -> Instruction.DCR(B)          // Decrement value in B by 1
-        | 0x06uy -> Instruction.MVI(B, ib)      // Load 8bit value into B
-        | 0x07uy -> Instruction.RLC             // Rotate A left
-        | 0x08uy -> Instruction.NOP             // Unspecified
-        | 0x09uy -> Instruction.DAD(BC)         // Add BC to HL
-        | 0x0Auy -> Instruction.LDAX(BC)        // Copy 8bit value from address BC into A
-        | 0x0Buy -> Instruction.DCX(BC)         // Decrement value in BC by 1
-        | 0x0Cuy -> Instruction.INR(C)          // Increment value in C by 1
-        | 0x0Duy -> Instruction.DCR(C)          // Decrement value in C by 1
-        | 0x0Euy -> Instruction.MVI(C, ib)      // Load 8bit value into C
-        | 0x0Fuy -> Instruction.RRC             // Rotate A right
-        | 0x10uy -> Instruction.NOP             // Unspecified
-        | 0x11uy -> Instruction.LXI(DE, iw)     // Load 16bit value into DE
-        | 0x12uy -> Instruction.STAX(DE)        // Copy 8bit value from A into address DE
-        | 0x13uy -> Instruction.INX(DE)         // Increment value in DE by 1
-        | 0x14uy -> Instruction.INR(D)          // Increment value in D by 1
-        | 0x15uy -> Instruction.DCR(D)          // Decrement value in D by 1
-        | 0x16uy -> Instruction.MVI(D, ib)      // Load 8bit value into D
-        | 0x17uy -> Instruction.RAL             // Rotate A left through carry
-        | 0x18uy -> Instruction.NOP             // Unspecified
-        | 0x19uy -> Instruction.DAD(DE)         // Add DE to HL
-        | 0x1Auy -> Instruction.LDAX(DE)        // Copy 8bit value from address DE into A
-        | 0x1Buy -> Instruction.DCX(DE)         // Decrement value in DE by 1
-        | 0x1Cuy -> Instruction.INR(E)          // Increment value in E by 1
-        | 0x1Duy -> Instruction.DCR(E)          // Decrement value in E by 1
-        | 0x1Euy -> Instruction.MVI(E, ib)      // Load 8bit value into E
-        | 0x1Fuy -> Instruction.RAR             // Rotate A right through carry
-        | 0x20uy -> Instruction.NOP             // Unspecified
-        | 0x21uy -> Instruction.LXI(HL, iw)     // Load 16bit value into HL
-        | 0x22uy -> Instruction.SHLD(iw)        // Copy 16bit value from HL into memory address
-        | 0x23uy -> Instruction.INX(HL)         // Increment value in HL by 1
-        | 0x24uy -> Instruction.INR(H)          // Increment value in H by 1
-        | 0x25uy -> Instruction.DCR(H)          // Decrement value in H by 1
-        | 0x26uy -> Instruction.MVI(H, ib)      // Load 8but value into H
-        | 0x27uy -> Instruction.DAA             // Not sure
-        | 0x28uy -> Instruction.NOP             // Unspecified
-        | 0x29uy -> Instruction.DAD(HL)         // Add HL to HL
-        | 0x2Auy -> Instruction.LHLD(iw)        // Load 16bit value from memory into HL
-        | 0x2Buy -> Instruction.DCX(HL)         // Decrement value in HL by 1
-        | 0x2Cuy -> Instruction.INR(L)          // Increment value in L by 1
-        | 0x2Duy -> Instruction.DCR(L)          // Decrement value in L by 1
-        | 0x2Euy -> Instruction.MVI(L, ib)      // Load 8bit value into L
-        | 0x2Fuy -> Instruction.CMA             // Set A to NOT A
-        | 0x30uy -> Instruction.NOP             // Unspecified
-        | 0x31uy -> Instruction.LXI(SP, iw)     // Load 16bit value into SP
-        | 0x32uy -> Instruction.STA(iw)         // Copy value from A to memory address
-        | 0x33uy -> Instruction.INX(SP)         // Increment value in SP by 1
-        | 0x34uy -> Instruction.INR_M           // Increment value in memory address in HL
-        | 0x35uy -> Instruction.DCR_M           // Decrement value in memory address in HL
-        | 0x36uy -> Instruction.MVI_M(ib)       // Copy 8bit value into the memory address in HL
-        | 0x37uy -> Instruction.STC             // Set C flag
-        | 0x38uy -> Instruction.NOP             // Unspecified
-        | 0x39uy -> Instruction.DAD(SP)         // Add SP to HL
-        | 0x3Auy -> Instruction.LDA(iw)         // Copy 8bit value in memory address to A
-        | 0x3Buy -> Instruction.DCX(SP)         // Decrement value in SP by 1
-        | 0x3Cuy -> Instruction.INR(A)          // Increment value in A by 1
-        | 0x3Duy -> Instruction.DCR(A)          // Decrement value in A by 1
-        | 0x3Euy -> Instruction.MVI(A, ib)      // Load 8bit value into A
-        | 0x3Fuy -> Instruction.CMC             // NOT the C flag
-        | 0x40uy -> Instruction.MOV_R_R(B, B)   // Copy 8bit value from B to B
-        | 0x41uy -> Instruction.MOV_R_R(B, C)   // Copy 8bit value from C to B
-        | 0x42uy -> Instruction.MOV_R_R(B, D)   // Copy 8bit value from D to B
-        | 0x43uy -> Instruction.MOV_R_R(B, E)   // Copy 8bit value from E to B
-        | 0x44uy -> Instruction.MOV_R_R(B, H)   // Copy 8bit value from H to B
-        | 0x45uy -> Instruction.MOV_R_R(B, L)   // Copy 8bit value from L to B
-        | 0x46uy -> Instruction.MOV_R_M(B)      // Copy 8bit value from address HL to B
-        | 0x47uy -> Instruction.MOV_R_R(B, A)   // Copy 8bit value from A to B
-        | 0x48uy -> Instruction.MOV_R_R(C, B)   // Copy 8bit value from B to C
-        | 0x49uy -> Instruction.MOV_R_R(C, C)   // Copy 8bit value from C to C
-        | 0x4Auy -> Instruction.MOV_R_R(C, D)   // Copy 8bit value from D to C
-        | 0x4Buy -> Instruction.MOV_R_R(C, E)   // Copy 8bit value from E to C
-        | 0x4Cuy -> Instruction.MOV_R_R(C, H)   // Copy 8bit value from H to C
-        | 0x4Duy -> Instruction.MOV_R_R(C, L)   // Copy 8bit value from L to C
-        | 0x4Euy -> Instruction.MOV_R_M(C)      // Copy 8bit value from address HL to C
-        | 0x4Fuy -> Instruction.MOV_R_R(C, A)   // Copy 8bit value from A to C
-        | 0x50uy -> Instruction.MOV_R_R(D, B)   // Copy 8bit value from B to D
-        | 0x51uy -> Instruction.MOV_R_R(D, C)   // Copy 8bit value from C to D
-        | 0x52uy -> Instruction.MOV_R_R(D, D)   // Copy 8bit value from D to D
-        | 0x53uy -> Instruction.MOV_R_R(D, E)   // Copy 8bit value from E to D
-        | 0x54uy -> Instruction.MOV_R_R(D, H)   // Copy 8bit value from H to D
-        | 0x55uy -> Instruction.MOV_R_R(D, L)   // Copy 8bit value from L to D
-        | 0x56uy -> Instruction.MOV_R_M(D)      // Copy 8bit value from address HL to D
-        | 0x57uy -> Instruction.MOV_R_R(D, A)   // Copy 8bit value from A to D
-        | 0x58uy -> Instruction.MOV_R_R(E, B)   // Copy 8bit value from B to E
-        | 0x59uy -> Instruction.MOV_R_R(E, C)   // Copy 8bit value from C to E
-        | 0x5Auy -> Instruction.MOV_R_R(E, D)   // Copy 8bit value from D to E
-        | 0x5Buy -> Instruction.MOV_R_R(E, E)   // Copy 8bit value from E to E
-        | 0x5Cuy -> Instruction.MOV_R_R(E, H)   // Copy 8bit value from H to E
-        | 0x5Duy -> Instruction.MOV_R_R(E, L)   // Copy 8bit value from L to E
-        | 0x5Euy -> Instruction.MOV_R_M(E)      // Copy 8bit value from address HL to E
-        | 0x5Fuy -> Instruction.MOV_R_R(E, A)   // Copy 8bit value from A to E
-        | 0x60uy -> Instruction.MOV_R_R(H, B)   // Copy 8bit value from B to H
-        | 0x61uy -> Instruction.MOV_R_R(H, C)   // Copy 8bit value from c to H
-        | 0x62uy -> Instruction.MOV_R_R(H, D)   // Copy 8bit value from D to H
-        | 0x63uy -> Instruction.MOV_R_R(H, E)   // Copy 8bit value from E to H
-        | 0x64uy -> Instruction.MOV_R_R(H, H)   // Copy 8bit value from H to H
-        | 0x65uy -> Instruction.MOV_R_R(H, L)   // Copy 8bit value from L to H
-        | 0x66uy -> Instruction.MOV_R_M(H)      // Copy 8bit value from address HL to H
-        | 0x67uy -> Instruction.MOV_R_R(H, A)   // Copy 8bit value from A to H
-        | 0x68uy -> Instruction.MOV_R_R(L, B)   // Copy 8bit value from B to L
-        | 0x69uy -> Instruction.MOV_R_R(L, C)   // Copy 8bit value from C to L
-        | 0x6Auy -> Instruction.MOV_R_R(L, D)   // Copy 8bit value from D to L
-        | 0x6Buy -> Instruction.MOV_R_R(L, E)   // Copy 8bit value from E to L
-        | 0x6Cuy -> Instruction.MOV_R_R(L, H)   // Copy 8bit value from H to L
-        | 0x6Duy -> Instruction.MOV_R_R(L, L)   // Copy 8bit value from L to L
-        | 0x6Euy -> Instruction.MOV_R_M(L)      // Copy 8bit value from L to L
-        | 0x6Fuy -> Instruction.MOV_R_R(L, A)   // Copy 8bit value from A to L
-        | 0x70uy -> Instruction.MOV_M_R(B)      // Copy 8bit value from B to address HL
-        | 0x71uy -> Instruction.MOV_M_R(C)      // Copy 8bit value from C to address HL
-        | 0x72uy -> Instruction.MOV_M_R(D)      // Copy 8bit value from D to address HL
-        | 0x73uy -> Instruction.MOV_M_R(E)      // Copy 8bit value from E to address HL
-        | 0x74uy -> Instruction.MOV_M_R(H)      // Copy 8bit value from H to address HL
-        | 0x75uy -> Instruction.MOV_M_R(L)      // Copy 8bit value from L to address HL
+        | 0x01uy -> Instruction.LXI(BC, iw)     // BC = Word
+        | 0x02uy -> Instruction.STAX(BC)        // (BC) = A
+        | 0x03uy -> Instruction.INX(BC)         // BC = BC + 1
+        | 0x04uy -> Instruction.INR(B)          // B = B + 1
+        | 0x05uy -> Instruction.DCR(B)          // B = B - 1
+        | 0x06uy -> Instruction.MVI(B, ib)      // B = byte
+        | 0x07uy -> Instruction.RLC             // A = A << 1
+        | 0x08uy -> Instruction.NOP             // Alternative for NOP (do not use)
+        | 0x09uy -> Instruction.DAD(BC)         // HL = HL + BC
+        | 0x0Auy -> Instruction.LDAX(BC)        // A = (BC)
+        | 0x0Buy -> Instruction.DCX(BC)         // BC = BC - 1
+        | 0x0Cuy -> Instruction.INR(C)          // C = C + 1
+        | 0x0Duy -> Instruction.DCR(C)          // C = C - 1
+        | 0x0Euy -> Instruction.MVI(C, ib)      // C = byte
+        | 0x0Fuy -> Instruction.RRC             // A = A >> 1
+        | 0x10uy -> Instruction.NOP             // Alternative for NOP (do not use)
+        | 0x11uy -> Instruction.LXI(DE, iw)     // DE = word
+        | 0x12uy -> Instruction.STAX(DE)        // (DE) = A
+        | 0x13uy -> Instruction.INX(DE)         // DE = DE + 1
+        | 0x14uy -> Instruction.INR(D)          // D = D + 1
+        | 0x15uy -> Instruction.DCR(D)          // D = D - 1
+        | 0x16uy -> Instruction.MVI(D, ib)      // D = byte
+        | 0x17uy -> Instruction.RAL             // A << 1 through carry
+        | 0x18uy -> Instruction.NOP             // Alternative for NOP (do not use)
+        | 0x19uy -> Instruction.DAD(DE)         // HL = HL + DE
+        | 0x1Auy -> Instruction.LDAX(DE)        // A = (DE)
+        | 0x1Buy -> Instruction.DCX(DE)         // DE = DE - 1
+        | 0x1Cuy -> Instruction.INR(E)          // E = E + 1
+        | 0x1Duy -> Instruction.DCR(E)          // E = E - 1
+        | 0x1Euy -> Instruction.MVI(E, ib)      // E = byte
+        | 0x1Fuy -> Instruction.RAR             // A = A >> 1 through carry
+        | 0x20uy -> Instruction.NOP             // Alternative for NOP (do not use)
+        | 0x21uy -> Instruction.LXI(HL, iw)     // HL = word
+        | 0x22uy -> Instruction.SHLD(iw)        // (word) = HL
+        | 0x23uy -> Instruction.INX(HL)         // HL = HL + 1
+        | 0x24uy -> Instruction.INR(H)          // H = H + 1
+        | 0x25uy -> Instruction.DCR(H)          // H = H - 1
+        | 0x26uy -> Instruction.MVI(H, ib)      // H = byte
+        | 0x27uy -> Instruction.DAA             // TODO
+        | 0x28uy -> Instruction.NOP             // Alternative for NOP (do not use)
+        | 0x29uy -> Instruction.DAD(HL)         // HL = HL + HL
+        | 0x2Auy -> Instruction.LHLD(iw)        // HL = (word)
+        | 0x2Buy -> Instruction.DCX(HL)         // HL = HL - 1
+        | 0x2Cuy -> Instruction.INR(L)          // L = L + 1
+        | 0x2Duy -> Instruction.DCR(L)          // L = L - 1
+        | 0x2Euy -> Instruction.MVI(L, ib)      // L = byte
+        | 0x2Fuy -> Instruction.CMA             // A = NOT A
+        | 0x30uy -> Instruction.NOP             // Alternative for NOP (do not use)
+        | 0x31uy -> Instruction.LXI(SP, iw)     // SP = word
+        | 0x32uy -> Instruction.STA(iw)         // (word) = A
+        | 0x33uy -> Instruction.INX(SP)         // SP = SP + 1
+        | 0x34uy -> Instruction.INR_M           // (HL) = (HL) + 1
+        | 0x35uy -> Instruction.DCR_M           // (HL) = (HL) - 1
+        | 0x36uy -> Instruction.MVI_M(ib)       // (HL) = byte
+        | 0x37uy -> Instruction.STC             // Set the Carry flag
+        | 0x38uy -> Instruction.NOP             // Alternative for NOP
+        | 0x39uy -> Instruction.DAD(SP)         // HL = HL + SP
+        | 0x3Auy -> Instruction.LDA(iw)         // A = (word)
+        | 0x3Buy -> Instruction.DCX(SP)         // SP = SP - 1
+        | 0x3Cuy -> Instruction.INR(A)          // A = A + 1
+        | 0x3Duy -> Instruction.DCR(A)          // A = A - 1
+        | 0x3Euy -> Instruction.MVI(A, ib)      // A = byte
+        | 0x3Fuy -> Instruction.CMC             // Unset the Carry flag
+        | 0x40uy -> Instruction.MOV_R_R(B, B)   // B = B
+        | 0x41uy -> Instruction.MOV_R_R(B, C)   // B = C
+        | 0x42uy -> Instruction.MOV_R_R(B, D)   // B = D
+        | 0x43uy -> Instruction.MOV_R_R(B, E)   // B = E
+        | 0x44uy -> Instruction.MOV_R_R(B, H)   // B = H
+        | 0x45uy -> Instruction.MOV_R_R(B, L)   // B = L
+        | 0x46uy -> Instruction.MOV_R_M(B)      // B = (HL)
+        | 0x47uy -> Instruction.MOV_R_R(B, A)   // B = A
+        | 0x48uy -> Instruction.MOV_R_R(C, B)   // C = B
+        | 0x49uy -> Instruction.MOV_R_R(C, C)   // C = C
+        | 0x4Auy -> Instruction.MOV_R_R(C, D)   // C = D
+        | 0x4Buy -> Instruction.MOV_R_R(C, E)   // C = E
+        | 0x4Cuy -> Instruction.MOV_R_R(C, H)   // C = H
+        | 0x4Duy -> Instruction.MOV_R_R(C, L)   // C = L
+        | 0x4Euy -> Instruction.MOV_R_M(C)      // C = (HL)
+        | 0x4Fuy -> Instruction.MOV_R_R(C, A)   // C = A
+        | 0x50uy -> Instruction.MOV_R_R(D, B)   // D = B
+        | 0x51uy -> Instruction.MOV_R_R(D, C)   // D = C
+        | 0x52uy -> Instruction.MOV_R_R(D, D)   // D = D
+        | 0x53uy -> Instruction.MOV_R_R(D, E)   // D = E
+        | 0x54uy -> Instruction.MOV_R_R(D, H)   // D = H
+        | 0x55uy -> Instruction.MOV_R_R(D, L)   // D = L
+        | 0x56uy -> Instruction.MOV_R_M(D)      // D = (HL)
+        | 0x57uy -> Instruction.MOV_R_R(D, A)   // D = A
+        | 0x58uy -> Instruction.MOV_R_R(E, B)   // E = B
+        | 0x59uy -> Instruction.MOV_R_R(E, C)   // E = C
+        | 0x5Auy -> Instruction.MOV_R_R(E, D)   // E = D
+        | 0x5Buy -> Instruction.MOV_R_R(E, E)   // E = E
+        | 0x5Cuy -> Instruction.MOV_R_R(E, H)   // E = H
+        | 0x5Duy -> Instruction.MOV_R_R(E, L)   // E = L
+        | 0x5Euy -> Instruction.MOV_R_M(E)      // E = (HL)
+        | 0x5Fuy -> Instruction.MOV_R_R(E, A)   // E = A
+        | 0x60uy -> Instruction.MOV_R_R(H, B)   // H = B
+        | 0x61uy -> Instruction.MOV_R_R(H, C)   // H = C
+        | 0x62uy -> Instruction.MOV_R_R(H, D)   // H = D
+        | 0x63uy -> Instruction.MOV_R_R(H, E)   // H = E
+        | 0x64uy -> Instruction.MOV_R_R(H, H)   // H = H
+        | 0x65uy -> Instruction.MOV_R_R(H, L)   // H = L
+        | 0x66uy -> Instruction.MOV_R_M(H)      // H = (HL)
+        | 0x67uy -> Instruction.MOV_R_R(H, A)   // H = A
+        | 0x68uy -> Instruction.MOV_R_R(L, B)   // L = B
+        | 0x69uy -> Instruction.MOV_R_R(L, C)   // L = C
+        | 0x6Auy -> Instruction.MOV_R_R(L, D)   // L = D
+        | 0x6Buy -> Instruction.MOV_R_R(L, E)   // L = E
+        | 0x6Cuy -> Instruction.MOV_R_R(L, H)   // L = H
+        | 0x6Duy -> Instruction.MOV_R_R(L, L)   // L = L
+        | 0x6Euy -> Instruction.MOV_R_M(L)      // L = (HL)
+        | 0x6Fuy -> Instruction.MOV_R_R(L, A)   // L = A
+        | 0x70uy -> Instruction.MOV_M_R(B)      // (HL) = B
+        | 0x71uy -> Instruction.MOV_M_R(C)      // (HL) = C
+        | 0x72uy -> Instruction.MOV_M_R(D)      // (HL) = D
+        | 0x73uy -> Instruction.MOV_M_R(E)      // (HL) = E
+        | 0x74uy -> Instruction.MOV_M_R(H)      // (HL) = H
+        | 0x75uy -> Instruction.MOV_M_R(L)      // (HL) = L
         | 0x76uy -> Instruction.HLT             // Halt CPU
-        | 0x77uy -> Instruction.MOV_M_R(A)      // Copy 8bit value in A to address HL
-        | 0x78uy -> Instruction.MOV_R_R(A, B)   // Copy 8bit value from B to A
-        | 0x79uy -> Instruction.MOV_R_R(A, C)   // Copy 8bit value from C to A
-        | 0x7Auy -> Instruction.MOV_R_R(A, D)   // Copy 8bit value from D to A
-        | 0x7Buy -> Instruction.MOV_R_R(A, E)   // Copy 8bit value from E to A
-        | 0x7Cuy -> Instruction.MOV_R_R(A, H)   // Copy 8bit value from H to A
-        | 0x7Duy -> Instruction.MOV_R_R(A, L)   // Copy 8bit value from L to A
-        | 0x7Euy -> Instruction.MOV_R_M(A)      // Copy 8bit value from address HL to A
-        | 0x7Fuy -> Instruction.MOV_R_R(A, A)   // Copy 8bit value from A to A
-        | 0x80uy -> Instruction.ADD(B)          // Increment A with value in B
-        | 0x81uy -> Instruction.ADD(C)          // Increment A with value in C
-        | 0x82uy -> Instruction.ADD(D)          // Increment A with value in D
-        | 0x83uy -> Instruction.ADD(D)          // Increment A with value in D
-        | 0x84uy -> Instruction.ADD(E)          // Increment A with value in E
-        | 0x85uy -> Instruction.ADD(H)          // Increment A with value in H
-        | 0x86uy -> Instruction.ADD(L)          // Increment A with value in L
-        | 0x87uy -> Instruction.ADD_M           // Increment A with value in address in HL
-        | 0x88uy -> Instruction.ADC(B)          // Increment A with value in B plus Carry
-        | 0x89uy -> Instruction.ADC(C)          // Increment A with value in C plus Carry
-        | 0x8Auy -> Instruction.ADC(D)          // Increment A with value in D plus Carry
-        | 0x8Buy -> Instruction.ADC(E)          // Increment A with value in E plus Carry
-        | 0x8Cuy -> Instruction.ADC(H)          // Increment A with value in H plus Carry
-        | 0x8Duy -> Instruction.ADC(L)          // Increment A with value in L plus Carry
-        | 0x8Euy -> Instruction.ADC_M           // Increment A with value in address in HL plus Carry
-        | 0x8Fuy -> Instruction.ADC(A)          // Increment A with value in A plus Carry
-        | 0x90uy -> Instruction.SUB(B)          // Decrement A with value in B
-        | 0x91uy -> Instruction.SUB(C)          // Decrement A with value in C
-        | 0x92uy -> Instruction.SUB(D)          // Decrement A with value in D
-        | 0x93uy -> Instruction.SUB(E)          // Decrement A with value in E
-        | 0x94uy -> Instruction.SUB(H)          // Decrement A with value in H
-        | 0x95uy -> Instruction.SUB(L)          // Decrement A with value in L
-        | 0x96uy -> Instruction.SUB_M           // Decrement A with value in address in HL
-        | 0x97uy -> Instruction.SUB(A)          // Decrement A with value in A
-        | 0x98uy -> Instruction.SBB(B)          // Decrement A with value in B with Borrow
-        | 0x99uy -> Instruction.SBB(C)          // Decrement A with value in C with Borrow
-        | 0x9Auy -> Instruction.SBB(D)          // Decrement A with value in D with Borrow
-        | 0x9Buy -> Instruction.SBB(E)          // Decrement A with value in E with Borrow
-        | 0x9Cuy -> Instruction.SBB(H)          // Decrement A with value in H with Borrow
-        | 0x9Duy -> Instruction.SBB(L)          // Decrement A with value in L with Borrow
-        | 0x9Euy -> Instruction.SBB_M           // Decrement A with value in address in HL with Borrow
-        | 0x9Fuy -> Instruction.SBB(A)          // Decrement A with value in A with Borrow
+        | 0x77uy -> Instruction.MOV_M_R(A)      // (HL) = A
+        | 0x78uy -> Instruction.MOV_R_R(A, B)   // A = B
+        | 0x79uy -> Instruction.MOV_R_R(A, C)   // A = C
+        | 0x7Auy -> Instruction.MOV_R_R(A, D)   // A = D
+        | 0x7Buy -> Instruction.MOV_R_R(A, E)   // A = E
+        | 0x7Cuy -> Instruction.MOV_R_R(A, H)   // A = H
+        | 0x7Duy -> Instruction.MOV_R_R(A, L)   // A = L
+        | 0x7Euy -> Instruction.MOV_R_M(A)      // A = (HL)
+        | 0x7Fuy -> Instruction.MOV_R_R(A, A)   // A = A
+        | 0x80uy -> Instruction.ADD(B)          // A = A + B
+        | 0x81uy -> Instruction.ADD(C)          // A = A + C
+        | 0x82uy -> Instruction.ADD(D)          // A = A + D
+        | 0x83uy -> Instruction.ADD(E)          // A = A + E
+        | 0x84uy -> Instruction.ADD(H)          // A = A + H
+        | 0x85uy -> Instruction.ADD(L)          // A = A + L
+        | 0x86uy -> Instruction.ADD_M           // A = A + (word)
+        | 0x87uy -> Instruction.ADD(A)          // A = A + A
+        | 0x88uy -> Instruction.ADC(B)          // A = A + B with Carry
+        | 0x89uy -> Instruction.ADC(C)          // A = A + C with Carry
+        | 0x8Auy -> Instruction.ADC(D)          // A = A + D with Carry
+        | 0x8Buy -> Instruction.ADC(E)          // A = A + E with Carry
+        | 0x8Cuy -> Instruction.ADC(H)          // A = A + H with Carry
+        | 0x8Duy -> Instruction.ADC(L)          // A = A + L with Carry
+        | 0x8Euy -> Instruction.ADC_M           // A = A + (HL) with Carry
+        | 0x8Fuy -> Instruction.ADC(A)          // A = A + A with Carry
+        | 0x90uy -> Instruction.SUB(B)          // A = A - B
+        | 0x91uy -> Instruction.SUB(C)          // A = A - C
+        | 0x92uy -> Instruction.SUB(D)          // A = A - D
+        | 0x93uy -> Instruction.SUB(E)          // A = A - E
+        | 0x94uy -> Instruction.SUB(H)          // A = A - H
+        | 0x95uy -> Instruction.SUB(L)          // A = A - L
+        | 0x96uy -> Instruction.SUB_M           // A = A - (HL)
+        | 0x97uy -> Instruction.SUB(A)          // A = A - A
+        | 0x98uy -> Instruction.SBB(B)          // A = A - B with Borrow
+        | 0x99uy -> Instruction.SBB(C)          // A = A - C with Borrow
+        | 0x9Auy -> Instruction.SBB(D)          // A = A - D with Borrow
+        | 0x9Buy -> Instruction.SBB(E)          // A = A - E with Borrow
+        | 0x9Cuy -> Instruction.SBB(H)          // A = A - H with Borrow
+        | 0x9Duy -> Instruction.SBB(L)          // A = A - L with Borrow
+        | 0x9Euy -> Instruction.SBB_M           // A = A - (HL) with Borrow
+        | 0x9Fuy -> Instruction.SBB(A)          // A = A - A with Borrow
+        | 0xA0uy -> Instruction.ANA(B)          // A = A AND B
+        | 0xA1uy -> Instruction.ANA(C)          // A = A AND C
+        | 0xA2uy -> Instruction.ANA(D)          // A = A AND D
+        | 0xA3uy -> Instruction.ANA(E)          // A = A AND E
+        | 0xA4uy -> Instruction.ANA(H)          // A = A AND H
+        | 0xA5uy -> Instruction.ANA(L)          // A = A AND L
+        | 0xA6uy -> Instruction.ANA_M           // A = A AND (HL)
+        | 0xA7uy -> Instruction.ANA(A)          // A = A AND A
+        | 0xA8uy -> Instruction.XRA(B)          // A = A XOR B
+        | 0xA9uy -> Instruction.XRA(C)          // A = A XOR C
+        | 0xAAuy -> Instruction.XRA(D)          // A = A XOR D
+        | 0xABuy -> Instruction.XRA(E)          // A = A XOR E
+        | 0xACuy -> Instruction.XRA(H)          // A = A XOR H
+        | 0xADuy -> Instruction.XRA(L)          // A = A XOR L
+        | 0xAEuy -> Instruction.XRA_M           // A = A XOR (HL)
+        | 0xAFuy -> Instruction.XRA(A)          // A = A XOR A
+        | 0xB0uy -> Instruction.ORA(B)          // A = A OR B
+        | 0xB1uy -> Instruction.ORA(C)          // A = A OR C
+        | 0xB2uy -> Instruction.ORA(D)          // A = A OR D
+        | 0xB3uy -> Instruction.ORA(E)          // A = A OR E
+        | 0xB4uy -> Instruction.ORA(H)          // A = A OR H
+        | 0xB5uy -> Instruction.ORA(L)          // A = A OR L
+        | 0xB6uy -> Instruction.ORA_M           // A = A OR (HL)
+        | 0xB7uy -> Instruction.ORA(A)          // A = A OR A
+        | 0xB8uy -> Instruction.CMP(B)          // Compare B to A
+        | 0xB9uy -> Instruction.CMP(C)          // Compare C to A
+        | 0xBAuy -> Instruction.CMP(D)          // Compare D to A
+        | 0xBBuy -> Instruction.CMP(E)          // Compare E to A
+        | 0xBCuy -> Instruction.CMP(H)          // Compare H to A
+        | 0xBDuy -> Instruction.CMP(L)          // Compare L to A
+        | 0xBEuy -> Instruction.CMP_M           // Compare (HL) to A
+        | 0xBFuy -> Instruction.CMP(A)          // Compare A to A
+
 
         | 0xC0uy -> Instruction.RNZ             // RET if Z flag is not set
-        | 0xC1uy -> Instruction.POP(BC)         // POP stack to BC
-        | 0xC2uy -> Instruction.JNZ(iw)         // Jump to memory address if Z flag is not set
-        | 0xC3uy -> Instruction.JMP(iw)         // Jump to memory address
-        | 0xC4uy -> Instruction.CNZ(iw)         // CALL memory address if Z flag is not set
-        | 0xC5uy -> Instruction.PUSH(BC)        // PUSH stack with value in BC
+        | 0xC1uy -> Instruction.POP(BC)         // BC = POP stack
+        | 0xC2uy -> Instruction.JNZ(iw)         // Jump to address if Z flag is not set
+        | 0xC3uy -> Instruction.JMP(iw)         // Jump to address
+        | 0xC4uy -> Instruction.CNZ(iw)         // CALL address if Z flag is not set
+        | 0xC5uy -> Instruction.PUSH(BC)        // PUSH BC to stack
+        | 0xC6uy -> Instruction.ADI(ib)         // A = A + byte
 
 
         | 0xC8uy -> Instruction.RZ              // RET if Z flag is set
-        | 0xC9uy -> Instruction.RET             // Pop stack to PC and jump back
-        | 0xCAuy -> Instruction.JZ(iw)          // Jump to memory address if Z flag is set
-        | 0xCBuy -> Instruction.JMP(iw)         // Alernate for JMP (but shouldn't be used)
-        | 0xCCuy -> Instruction.CZ(iw)          // CALL memory address if Z flag is set
+        | 0xC9uy -> Instruction.RET             // Return from call
+        | 0xCAuy -> Instruction.JZ(iw)          // Jump to address if Z flag is set
+        | 0xCBuy -> Instruction.JMP(iw)         // Alernate for JMP (do not use)
+        | 0xCCuy -> Instruction.CZ(iw)          // CALL address if Z flag is set
         | 0xCDuy -> Instruction.CALL(iw)        // Push PC to stack and jump to address
+        | 0xCEuy -> Instruction.ACI(ib)         // A = A + byte with Carry
+
 
         | 0xD0uy -> Instruction.RNC             // RET if C flag not set
-        | 0xD1uy -> Instruction.POP(DE)         // POP stack to DE
-        | 0xD2uy -> Instruction.JNC(iw)         // Jump to memory address if C flag is not set
+        | 0xD1uy -> Instruction.POP(DE)         // DE = POP stack
+        | 0xD2uy -> Instruction.JNC(iw)         // Jump to address if C flag is not set
 
         | 0xD4uy -> Instruction.CNC(iw)         // CALL memory address if C flag is not set
-        | 0xD5uy -> Instruction.PUSH(DE)        // PUSH stack with value in DE
-        
-        | 0xDDuy -> Instruction.CALL(iw)        // Alternative for CALL (but shouldn't be used)
+        | 0xD5uy -> Instruction.PUSH(DE)        // PUSH DE to stack
+        | 0xD6uy -> Instruction.SUI(ib)         // A = A - byte
 
-        | 0xE1uy -> Instruction.POP(HL)         // POP stack to HL
+        | 0xDDuy -> Instruction.CALL(iw)        // Alternative for CALL (do not use)
+        | 0xDEuy -> Instruction.SBI(ib)         // A = A - byte with Borrow
+        | 0xE1uy -> Instruction.POP(HL)         // HL = POP stack
 
-        | 0xE5uy -> Instruction.PUSH(HL)        // PUSH stack with value in H
-        | 0xE6uy -> Instruction.ANI             // AND A against 8bit value
+        | 0xE5uy -> Instruction.PUSH(HL)        // PUSH HL to stack
+        | 0xE6uy -> Instruction.ANI(ib)         // A = A AND byte
+        | 0xEDuy -> Instruction.CALL(iw)        // Alternative for CALL (do not use)
+        | 0xEEuy -> Instruction.XRI(ib)         // A = A XOR byte
 
-        | 0xEDuy -> Instruction.CALL(iw)        // Alternative for CALL (but shouldn't be used)
+        | 0xF6uy -> Instruction.ORI(ib)         // A = X OR byte
 
-        | 0xFDuy -> Instruction.CALL(iw)        // Alternative for CALL (but shouldn't be used)
+        | 0xFDuy -> Instruction.CALL(iw)        // Alternative for CALL (do not use)
+        | 0xFEuy -> Instruction.CPI(ib)         // Compare byte to A
 
         | _ -> raise (UnknownInstruction(opcode))
 
@@ -261,21 +301,36 @@ let execute instruction state memory =
         | SUB_M                 -> sub_m state memory, []
         | SBB(reg)              -> sbb reg state, []
         | SBB_M                 -> sbb_m state memory, []
+        | ANA(reg)              -> ana reg state, []
+        | ANA_M                 -> ana_m state memory, []
+        | XRA(reg)              -> xra reg state, []
+        | XRA_M                 -> xra_m state memory, []
+        | ORA(reg)              -> ora reg state, []
+        | ORA_M                 -> ora_m state memory, []
+        | CMP(reg)              -> cmp reg state, []
+        | CMP_M                 -> cmp_m state memory, []
         | RNZ                   -> rnz state memory, []
         | POP(reg)              -> pop reg state memory, []
         | JNZ(address)          -> jnz address state, []
         | JMP(address)          -> jmp address state, []
         | CNZ(address)          -> cnz address state
         | PUSH(reg)             -> push reg state
+        | ADI(byte)             -> adi byte state, []
         | RZ                    -> rz state memory, []
         | RET                   -> ret state memory, []
         | JZ(address)           -> jz address state, []
         | CZ(address)           -> cz address state
         | CALL(address)         -> call address state 
+        | ACI(byte)             -> aci byte state, []
         | RNC                   -> rnc state memory, []
         | JNC(address)          -> jnc address state, []
         | CNC(address)          -> cnc address state
-        | ANI                   -> ani state memory, []
+        | SUI(byte)             -> sui byte state, [] 
+        | SBI(byte)             -> sbi byte state, []
+        | ANI(byte)             -> ani byte state, []
+        | XRI(byte)             -> xri byte state, []
+        | ORI(byte)             -> ori byte state, []
+        | CPI(byte)             -> cpi byte state, []
 
 // fetch-decode-execute cycle! Where all the magic begins.
 let rec cycle state memory =
