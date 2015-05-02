@@ -68,8 +68,23 @@ type Instruction =
     | JNC of DWord
     | CNC of DWord
     | SUI of byte
+    | RC
+    | JC of DWord
+    | CC of DWord
     | SBI of byte
+    | RPO
+    | JPO of DWord
+    | CPO of DWord
     | ANI of byte
+    | RPE
+    | JPE of DWord
+    | CPE of DWord
     | XRI of byte
+    | RP
+    | JP of DWord
+    | CP of DWord
     | ORI of byte
+    | RM
+    | JM of DWord
+    | CM of DWord
     | CPI of byte

@@ -18,6 +18,8 @@ let defaultState = {
     SP = { High = 0uy; Low = 0uy; };
     PC = { High = 0uy; Low = 0uy; };
     WC = 0;
+    InterruptsEnabled = false;
+    RunState = RunState.Running;
 }
 
 [<Test>]

@@ -41,6 +41,11 @@ type DWord =
         then { High = (Array.get bytes 1); Low = (Array.get bytes 0); }
         else { High = (Array.get bytes 0); Low = (Array.get bytes 1); }
 
+type RunState =
+    | Stopped
+    | Running
+    | Halted
+
 // Represents the CPU's current state
 type State = {
     // Registers
@@ -54,6 +59,12 @@ type State = {
     SP: DWord;
     PC: DWord;
     FLAGS: byte;
+
+    // Interrupts enabled or disabled
+    InterruptsEnabled: bool;
+
+    // Running state
+    RunState: RunState
 
     // Work cycles
     WC: int;

@@ -18,6 +18,8 @@ let internal defaultState = {
     SP = { High = 0uy; Low = 0uy; };
     PC = { High = 0uy; Low = 0uy; };
     WC = 0;
+    InterruptsEnabled = false;
+    RunState = RunState.Running;
 }
 
 // NOP
@@ -30,8 +32,8 @@ let ``NOP should only affect PC and WC states`` () =
 
 // HLT
 [<Test>]
-let ``HLT should only affect the PC and WC states`` () =
+let ``HLT should set RunState to Halted`` () =
     defaultState
     |> hlt
-    |> fun state -> (state.A + state.B + state.C + state.D + state.E + state.FLAGS)
-    |> should equal 0
+    |> fun state -> state.RunState
+    |> should equal RunState.Halted

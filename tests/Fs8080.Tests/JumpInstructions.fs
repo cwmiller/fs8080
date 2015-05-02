@@ -19,6 +19,8 @@ let internal defaultState = {
     SP = { High = 0uy; Low = 0uy; };
     PC = { High = 0uy; Low = 0uy; };
     WC = 0;
+    InterruptsEnabled = false;
+    RunState = RunState.Running;
 }
 
 // RNZ
@@ -299,6 +301,391 @@ let ``CNC 0xBEEF while C flag is set should only increment PC`` () =
     let (newState, changes) =
         { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; }; FLAGS = FlagMask.C }
         |> fun state -> cnc { High = 0xBEuy; Low = 0xEFuy } state
+
+    newState.PC.Value
+    |> should equal 0xAAAD
+
+    newState.SP.Value
+    |> should equal 0xFFFF
+    
+    changes.Length
+    |> should equal 0
+
+// RC
+[<Test>]
+let ``RC while stack points to 0xBEEF and C flag is set should set PC to 0xBEEF`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 0xAAAA 0xEFuy
+    Array.set memory 0xAAAB 0xBEuy
+
+    { defaultState with SP = { High = 0xAAuy; Low = 0xAAuy }; FLAGS = FlagMask.C }
+    |> fun state -> rc state memory
+    |> fun state -> should equal 0xBEEF (state.PC.Value)
+
+// JC
+[<Test>]
+let ``JC 0xBEEF while C is set should set PC to 0xBEEF`` () =
+    jc { High = 0xBEuy; Low = 0xEFuy } { defaultState with FLAGS = FlagMask.C }
+    |> fun state -> should equal 0xBEEF (state.PC.Value)
+
+[<Test>]
+let ``JC 0xBEEF while C is not set should only incease PC by 3`` () =
+    jc { High = 0xBEuy; Low = 0xEFuy }defaultState
+    |> fun state -> should equal 0x03 (state.PC.Value)
+
+// CC
+[<Test>]
+let ``CC 0xBEEF while C flag is set should push PC+3 to the stack then set PC to 0xBEEF`` () =
+    let (newState, changes) =
+        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; }; FLAGS = FlagMask.C }
+        |> fun state -> cc { High = 0xBEuy; Low = 0xEFuy } state
+
+    newState.PC.Value
+    |> should equal 0xBEEF
+
+    newState.SP.Value
+    |> should equal 0xFFFD
+    
+    changes.Length
+    |> should equal 2 
+
+    changes.Head
+    |> fst
+    |> should equal { High = 0xFFuy; Low = 0xFEuy }
+
+    changes.Head
+    |> snd
+    |> should equal 0xAD
+
+    changes.Tail.Head
+    |> fst
+    |> should equal { High = 0xFFuy; Low = 0xFDuy; }
+
+    changes.Tail.Head
+    |> snd
+    |> should equal 0xAA
+
+[<Test>]
+let ``CC 0xBEEF while C flag is set should only increment PC`` () =
+    let (newState, changes) =
+        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; } }
+        |> fun state -> cc { High = 0xBEuy; Low = 0xEFuy } state
+
+    newState.PC.Value
+    |> should equal 0xAAAD
+
+    newState.SP.Value
+    |> should equal 0xFFFF
+    
+    changes.Length
+    |> should equal 0
+
+// RPO
+[<Test>]
+let ``RPO while stack points to 0xBEEF and P flag is not set should set PC to 0xBEEF`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 0xAAAA 0xEFuy
+    Array.set memory 0xAAAB 0xBEuy
+
+    { defaultState with SP = { High = 0xAAuy; Low = 0xAAuy } }
+    |> fun state -> rpo state memory
+    |> fun state -> should equal 0xBEEF (state.PC.Value)
+
+[<Test>]
+let ``RPO while stack points to 0xBEEF and P flag is set should not set PC to 0xBEEF`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 0xAAAA 0xEFuy
+    Array.set memory 0xAAAB 0xBEuy
+
+    { defaultState with SP = { High = 0xAAuy; Low = 0xAAuy }; FLAGS = FlagMask.P }
+    |> fun state -> rpo state memory
+    |> fun state -> should not' (equal 0xBEEF) (state.PC.Value)
+
+// JPO
+[<Test>]
+let ``JPO 0xBEEF while P is not set should set PC to 0xBEEF`` () =
+    jpo { High = 0xBEuy; Low = 0xEFuy } defaultState
+    |> fun state -> should equal 0xBEEF (state.PC.Value)
+
+[<Test>]
+let ``JPO 0xBEEF while P is set should only incease PC by 3`` () =
+    jpo { High = 0xBEuy; Low = 0xEFuy } { defaultState with FLAGS = FlagMask.P }
+    |> fun state -> should equal 0x03 (state.PC.Value)
+
+// CPO
+[<Test>]
+let ``CPO 0xBEEF while P flag is not set should push PC+3 to the stack then set PC to 0xBEEF`` () =
+    let (newState, changes) =
+        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; } }
+        |> fun state -> cpo { High = 0xBEuy; Low = 0xEFuy } state
+
+    newState.PC.Value
+    |> should equal 0xBEEF
+
+    newState.SP.Value
+    |> should equal 0xFFFD
+    
+    changes.Length
+    |> should equal 2 
+
+    changes.Head
+    |> fst
+    |> should equal { High = 0xFFuy; Low = 0xFEuy }
+
+    changes.Head
+    |> snd
+    |> should equal 0xAD
+
+    changes.Tail.Head
+    |> fst
+    |> should equal { High = 0xFFuy; Low = 0xFDuy; }
+
+    changes.Tail.Head
+    |> snd
+    |> should equal 0xAA
+
+[<Test>]
+let ``CPO 0xBEEF while P flag is set should only increment PC`` () =
+    let (newState, changes) =
+        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; }; FLAGS = FlagMask.P }
+        |> fun state -> cpo { High = 0xBEuy; Low = 0xEFuy } state
+
+    newState.PC.Value
+    |> should equal 0xAAAD
+
+    newState.SP.Value
+    |> should equal 0xFFFF
+    
+    changes.Length
+    |> should equal 0
+
+// RPE
+[<Test>]
+let ``RPE while stack points to 0xBEEF and P flag is set should set PC to 0xBEEF`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 0xAAAA 0xEFuy
+    Array.set memory 0xAAAB 0xBEuy
+
+    { defaultState with SP = { High = 0xAAuy; Low = 0xAAuy }; FLAGS = FlagMask.P }
+    |> fun state -> rpe state memory
+    |> fun state -> should equal 0xBEEF (state.PC.Value)
+
+[<Test>]
+let ``RPE while stack points to 0xBEEF and P flag is not set should not set PC to 0xBEEF`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 0xAAAA 0xEFuy
+    Array.set memory 0xAAAB 0xBEuy
+
+    { defaultState with SP = { High = 0xAAuy; Low = 0xAAuy } }
+    |> fun state -> rpe state memory
+    |> fun state -> should not' (equal 0xBEEF) (state.PC.Value)
+
+// JPE
+[<Test>]
+let ``JPE 0xBEEF while P is set should set PC to 0xBEEF`` () =
+    jpe { High = 0xBEuy; Low = 0xEFuy } { defaultState with FLAGS = FlagMask.P }
+    |> fun state -> should equal 0xBEEF (state.PC.Value)
+
+[<Test>]
+let ``JPE 0xBEEF while P is not set should only incease PC by 3`` () =
+    jpe { High = 0xBEuy; Low = 0xEFuy } defaultState
+    |> fun state -> should equal 0x03 (state.PC.Value)
+
+// CPE
+[<Test>]
+let ``CPE 0xBEEF while P flag is set should push PC+3 to the stack then set PC to 0xBEEF`` () =
+    let (newState, changes) =
+        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; };  FLAGS = FlagMask.P }
+        |> fun state -> cpe { High = 0xBEuy; Low = 0xEFuy } state
+
+    newState.PC.Value
+    |> should equal 0xBEEF
+
+    newState.SP.Value
+    |> should equal 0xFFFD
+    
+    changes.Length
+    |> should equal 2 
+
+    changes.Head
+    |> fst
+    |> should equal { High = 0xFFuy; Low = 0xFEuy }
+
+    changes.Head
+    |> snd
+    |> should equal 0xAD
+
+    changes.Tail.Head
+    |> fst
+    |> should equal { High = 0xFFuy; Low = 0xFDuy; }
+
+    changes.Tail.Head
+    |> snd
+    |> should equal 0xAA
+
+[<Test>]
+let ``CPE 0xBEEF while P flag is not set should only increment PC`` () =
+    let (newState, changes) =
+        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; } }
+        |> fun state -> cpe { High = 0xBEuy; Low = 0xEFuy } state
+
+    newState.PC.Value
+    |> should equal 0xAAAD
+
+    newState.SP.Value
+    |> should equal 0xFFFF
+    
+    changes.Length
+    |> should equal 0
+
+// RP
+[<Test>]
+let ``RP while stack points to 0xBEEF and S flag is not set should set PC to 0xBEEF`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 0xAAAA 0xEFuy
+    Array.set memory 0xAAAB 0xBEuy
+
+    { defaultState with SP = { High = 0xAAuy; Low = 0xAAuy } }
+    |> fun state -> rp state memory
+    |> fun state -> should equal 0xBEEF (state.PC.Value)
+
+[<Test>]
+let ``RP while stack points to 0xBEEF and S flag is set should not set PC to 0xBEEF`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 0xAAAA 0xEFuy
+    Array.set memory 0xAAAB 0xBEuy
+
+    { defaultState with SP = { High = 0xAAuy; Low = 0xAAuy }; FLAGS = FlagMask.S }
+    |> fun state -> rp state memory
+    |> fun state -> should not' (equal 0xBEEF) (state.PC.Value)
+
+// JP
+[<Test>]
+let ``JP 0xBEEF while S is not set should set PC to 0xBEEF`` () =
+    jp { High = 0xBEuy; Low = 0xEFuy } defaultState
+    |> fun state -> should equal 0xBEEF (state.PC.Value)
+
+[<Test>]
+let ``JP 0xBEEF while S is set should only incease PC by 3`` () =
+    jp { High = 0xBEuy; Low = 0xEFuy } { defaultState with FLAGS = FlagMask.S }
+    |> fun state -> should equal 0x03 (state.PC.Value)
+
+// CP
+[<Test>]
+let ``CP 0xBEEF while S flag is not set should push PC+3 to the stack then set PC to 0xBEEF`` () =
+    let (newState, changes) =
+        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; } }
+        |> fun state -> cp { High = 0xBEuy; Low = 0xEFuy } state
+
+    newState.PC.Value
+    |> should equal 0xBEEF
+
+    newState.SP.Value
+    |> should equal 0xFFFD
+    
+    changes.Length
+    |> should equal 2 
+
+    changes.Head
+    |> fst
+    |> should equal { High = 0xFFuy; Low = 0xFEuy }
+
+    changes.Head
+    |> snd
+    |> should equal 0xAD
+
+    changes.Tail.Head
+    |> fst
+    |> should equal { High = 0xFFuy; Low = 0xFDuy; }
+
+    changes.Tail.Head
+    |> snd
+    |> should equal 0xAA
+
+[<Test>]
+let ``CP 0xBEEF while S flag is set should only increment PC`` () =
+    let (newState, changes) =
+        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; }; FLAGS = FlagMask.S  }
+        |> fun state -> cp { High = 0xBEuy; Low = 0xEFuy } state
+
+    newState.PC.Value
+    |> should equal 0xAAAD
+
+    newState.SP.Value
+    |> should equal 0xFFFF
+    
+    changes.Length
+    |> should equal 0
+
+// RM
+[<Test>]
+let ``RM while stack points to 0xBEEF and S flag is set should set PC to 0xBEEF`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 0xAAAA 0xEFuy
+    Array.set memory 0xAAAB 0xBEuy
+
+    { defaultState with SP = { High = 0xAAuy; Low = 0xAAuy }; FLAGS = FlagMask.S }
+    |> fun state -> rm state memory
+    |> fun state -> should equal 0xBEEF (state.PC.Value)
+
+[<Test>]
+let ``RM while stack points to 0xBEEF and S flag is not set should not set PC to 0xBEEF`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 0xAAAA 0xEFuy
+    Array.set memory 0xAAAB 0xBEuy
+
+    { defaultState with SP = { High = 0xAAuy; Low = 0xAAuy } }
+    |> fun state -> rm state memory
+    |> fun state -> should not' (equal 0xBEEF) (state.PC.Value)
+
+// JM
+[<Test>]
+let ``JM 0xBEEF while S is set should set PC to 0xBEEF`` () =
+    jm { High = 0xBEuy; Low = 0xEFuy } { defaultState with FLAGS = FlagMask.S }
+    |> fun state -> should equal 0xBEEF (state.PC.Value)
+
+[<Test>]
+let ``JM 0xBEEF while S is not set should only incease PC by 3`` () =
+    jm { High = 0xBEuy; Low = 0xEFuy } defaultState
+    |> fun state -> should equal 0x03 (state.PC.Value)
+
+// CM
+[<Test>]
+let ``CM 0xBEEF while S flag is set should push PC+3 to the stack then set PC to 0xBEEF`` () =
+    let (newState, changes) =
+        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; }; FLAGS = FlagMask.S }
+        |> fun state -> cm { High = 0xBEuy; Low = 0xEFuy } state
+
+    newState.PC.Value
+    |> should equal 0xBEEF
+
+    newState.SP.Value
+    |> should equal 0xFFFD
+    
+    changes.Length
+    |> should equal 2 
+
+    changes.Head
+    |> fst
+    |> should equal { High = 0xFFuy; Low = 0xFEuy }
+
+    changes.Head
+    |> snd
+    |> should equal 0xAD
+
+    changes.Tail.Head
+    |> fst
+    |> should equal { High = 0xFFuy; Low = 0xFDuy; }
+
+    changes.Tail.Head
+    |> snd
+    |> should equal 0xAA
+
+[<Test>]
+let ``CM 0xBEEF while S flag is not set should only increment PC`` () =
+    let (newState, changes) =
+        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; } }
+        |> fun state -> cm { High = 0xBEuy; Low = 0xEFuy } state
 
     newState.PC.Value
     |> should equal 0xAAAD
