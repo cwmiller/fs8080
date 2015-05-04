@@ -228,8 +228,6 @@ type Cpu(memory: byte[]) =
             | 0xBDuy -> Instruction.CMP(L)          // Compare L to A
             | 0xBEuy -> Instruction.CMP_M           // Compare (HL) to A
             | 0xBFuy -> Instruction.CMP(A)          // Compare A to A
-
-
             | 0xC0uy -> Instruction.RNZ             // RET if Z flag is not set
             | 0xC1uy -> Instruction.POP(BC)         // BC = POP stack
             | 0xC2uy -> Instruction.JNZ(iw)         // Jump to address if Z flag is not set
@@ -237,7 +235,6 @@ type Cpu(memory: byte[]) =
             | 0xC4uy -> Instruction.CNZ(iw)         // CALL address if Z flag is not set
             | 0xC5uy -> Instruction.PUSH(BC)        // PUSH BC to stack
             | 0xC6uy -> Instruction.ADI(ib)         // A = A + byte
-
 
             | 0xC8uy -> Instruction.RZ              // RET if Z flag is set
             | 0xC9uy -> Instruction.RET             // Return from call
@@ -266,7 +263,7 @@ type Cpu(memory: byte[]) =
             | 0xE0uy -> Instruction.RPO             // RET if Odd (Parity flag not set)
             | 0xE1uy -> Instruction.POP(HL)         // HL = POP stack
             | 0xE2uy -> Instruction.JPO(iw)         // JUMP to address if Odd (Parity flag not set)
-
+            | 0xE3uy -> Instruction.XTHL            // Exchange Stack with HL
             | 0xE4uy -> Instruction.CPO(iw)         // CALL address if Odd (Parity flag not set)
 
             | 0xE5uy -> Instruction.PUSH(HL)        // PUSH HL to stack
@@ -275,7 +272,6 @@ type Cpu(memory: byte[]) =
             | 0xE8uy -> Instruction.RPE             // RET if Even (Parity flag set)
 
             | 0xEAuy -> Instruction.JPE(iw)         // JUMP to address if Even (Parity flag set)
-
             | 0xECuy -> Instruction.CPE(iw)         // CALL address if Even (Parity flag set)
             | 0xEDuy -> Instruction.CALL(iw)        // Alternative for CALL (do not use)
             | 0xEEuy -> Instruction.XRI(ib)         // A = A XOR byte
@@ -367,6 +363,7 @@ type Cpu(memory: byte[]) =
             | SBI(byte)             -> sbi byte state, []
             | RPO                   -> rpo state memory, []
             | JPO(address)          -> jpo address state, []
+            | XTHL                  -> xthl state memory
             | CPO(address)          -> cpo address state
             | ANI(byte)             -> ani byte state, []
             | RPE                   -> rpe state memory, []

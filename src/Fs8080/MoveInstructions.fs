@@ -116,3 +116,21 @@ let push register state =
     |> incPC 1us
     |> incWC 11
     |> fun state -> (state, memchanges)
+
+// Exchange Stack and HL
+let xthl state memory =
+    let hl = get16 HL state
+    let stack = {
+        High = fetch (state.SP + 1us) memory;
+        Low = fetch state.SP memory;
+    }
+
+    let memchanges = [
+        state.SP, hl.Low;
+        (state.SP + 1us), hl.High;
+    ]
+
+    { state with H = stack.High; L = stack.Low }
+    |> incPC 1us
+    |> incWC 18
+    |> fun state -> (state, memchanges)

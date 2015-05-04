@@ -74,6 +74,7 @@ type Instruction =
     | SBI of byte
     | RPO
     | JPO of DWord
+    | XTHL
     | CPO of DWord
     | ANI of byte
     | RPE

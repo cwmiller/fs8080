@@ -259,3 +259,13 @@ let ``PUSH B while B should set SP tp SP-2`` () =
     { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy }; B = 0xBEuy; C = 0xEFuy }
     |> push BC
     |> fun (state, _) -> should equal 0xFFFD (state.SP.Value)
+
+[<Test>]
+let ``XTHL while SP points to 0xDEAD and HL contains 0xBEEF should set SP to 0xBEEF and HL to 0xDEAD`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 0 0xADuy
+    Array.set memory 1 0xDEuy
+
+    { defaultState with SP = { High = 0x0uy; Low = 0x0uy; }; H = 0xBEuy; L = 0xEFuy; }
+    |> fun state -> xthl state memory
+    |> fun (state, _) -> should equal 0xDEAD (get16 HL state).Value
