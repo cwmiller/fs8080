@@ -272,6 +272,7 @@ type Cpu(memory: byte[]) =
             | 0xE8uy -> Instruction.RPE             // RET if Even (Parity flag set)
 
             | 0xEAuy -> Instruction.JPE(iw)         // JUMP to address if Even (Parity flag set)
+            | 0xEBuy -> Instruction.XCHG            // Exchange HL and DE
             | 0xECuy -> Instruction.CPE(iw)         // CALL address if Even (Parity flag set)
             | 0xEDuy -> Instruction.CALL(iw)        // Alternative for CALL (do not use)
             | 0xEEuy -> Instruction.XRI(ib)         // A = A XOR byte
@@ -368,6 +369,7 @@ type Cpu(memory: byte[]) =
             | ANI(byte)             -> ani byte state, []
             | RPE                   -> rpe state memory, []
             | JPE(address)          -> jpe address state, []
+            | XCHG                  -> xchg state, []
             | CPE(address)          -> cpe address state
             | XRI(byte)             -> xri byte state, []
             | RP                    -> rp state memory, []

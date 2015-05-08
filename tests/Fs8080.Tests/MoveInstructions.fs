@@ -269,3 +269,14 @@ let ``XTHL while SP points to 0xDEAD and HL contains 0xBEEF should set SP to 0xB
     { defaultState with SP = { High = 0x0uy; Low = 0x0uy; }; H = 0xBEuy; L = 0xEFuy; }
     |> fun state -> xthl state memory
     |> fun (state, _) -> should equal 0xDEAD (get16 HL state).Value
+
+[<Test>]
+let ``XCHG while HL contains 0xDEAD and DE contains 0xBEEF should set DE to 0xDEAD and HL to 0xBEEF`` () =
+    let state =
+        defaultState
+        |> set16 HL { High = 0xDEuy; Low = 0xADuy }
+        |> set16 DE { High = 0xBEuy; Low = 0xEFuy }
+        |> xchg
+
+    (get16 HL state).Value |> should equal 0xBEEF 
+    (get16 DE state).Value |> should equal 0xDEAD

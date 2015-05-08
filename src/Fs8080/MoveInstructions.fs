@@ -134,3 +134,13 @@ let xthl state memory =
     |> incPC 1us
     |> incWC 18
     |> fun state -> (state, memchanges)
+
+// Exchange HL and DE
+let xchg state =
+    let hl = get16 HL state
+    let de = get16 DE state
+
+    set16 HL de state
+    |> set16 DE hl
+    |> incPC 1us
+    |> incWC 5

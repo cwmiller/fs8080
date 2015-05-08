@@ -79,6 +79,7 @@ type Instruction =
     | ANI of byte
     | RPE
     | JPE of DWord
+    | XCHG
     | CPE of DWord
     | XRI of byte
     | RP
