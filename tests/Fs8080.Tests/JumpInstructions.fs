@@ -7,7 +7,7 @@ open Fs8080.Types
 open Fs8080.Registers
 open Fs8080.JumpInstructions
 
-let internal defaultState = {
+let internal defaultCpu = {
     A = 0uy;
     B = 0uy;
     C = 0uy;
@@ -20,7 +20,7 @@ let internal defaultState = {
     PC = { High = 0uy; Low = 0uy; };
     WC = 0;
     InterruptsEnabled = false;
-    RunState = RunState.Running;
+    State = State.Running;
 }
 
 // RNZ
@@ -30,9 +30,9 @@ let ``RNZ while stack points to 0xBEEF and Z flag is not set should set PC to 0x
     Array.set memory 0xAAAA 0xEFuy
     Array.set memory 0xAAAB 0xBEuy
 
-    { defaultState with SP = { High = 0xAAuy; Low = 0xAAuy } }
-    |> fun state -> rnz state memory
-    |> fun state -> should equal 0xBEEF (state.PC.Value)
+    { defaultCpu with SP = { High = 0xAAuy; Low = 0xAAuy } }
+    |> fun cpu -> rnz cpu memory
+    |> fun cpu -> should equal 0xBEEF (cpu.PC.Value)
 
 [<Test>]
 let ``RNZ while stack points to 0xBEEF and Z flag is set should not set PC to 0xBEEF`` () =
@@ -40,38 +40,38 @@ let ``RNZ while stack points to 0xBEEF and Z flag is set should not set PC to 0x
     Array.set memory 0xAAAA 0xEFuy
     Array.set memory 0xAAAB 0xBEuy
 
-    { defaultState with SP = { High = 0xAAuy; Low = 0xAAuy }; FLAGS = FlagMask.Z }
-    |> fun state -> rnz state memory
-    |> fun state -> should not' (equal 0xBEEF) (state.PC.Value)
+    { defaultCpu with SP = { High = 0xAAuy; Low = 0xAAuy }; FLAGS = FlagMask.Z }
+    |> fun cpu -> rnz cpu memory
+    |> fun cpu -> should not' (equal 0xBEEF) (cpu.PC.Value)
 
 // JNZ
 [<Test>]
 let ``JNZ 0xBEEF while Z is not set should set PC to 0xBEEF`` () =
-    jnz { High = 0xBEuy; Low = 0xEFuy } defaultState
-    |> fun state -> should equal 0xBEEF (state.PC.Value)
+    jnz { High = 0xBEuy; Low = 0xEFuy } defaultCpu
+    |> fun cpu -> should equal 0xBEEF (cpu.PC.Value)
 
 [<Test>]
 let ``JNZ 0xBEEF while Z is set should only incease PC by 3`` () =
-    jnz { High = 0xBEuy; Low = 0xEFuy } defaultState
-    |> fun state -> should equal 0xBEEF (state.PC.Value)
+    jnz { High = 0xBEuy; Low = 0xEFuy } defaultCpu
+    |> fun cpu -> should equal 0xBEEF (cpu.PC.Value)
 
 // JMP
 [<Test>]
 let ``JMP 0xBEEF should set PC to 0xBEEF`` () =
-    jmp { High = 0xBEuy; Low = 0xEFuy } defaultState
-    |> fun state -> should equal 0xBEEF (state.PC.Value)
+    jmp { High = 0xBEuy; Low = 0xEFuy } defaultCpu
+    |> fun cpu -> should equal 0xBEEF (cpu.PC.Value)
 
 // CNZ
 [<Test>]
 let ``CNZ 0xBEEF while Z flag is not set should push PC+3 to the stack then set PC to 0xBEEF`` () =
-    let (newState, changes) =
-        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; } }
-        |> fun state -> cnz { High = 0xBEuy; Low = 0xEFuy } state
+    let (newCpu, changes) =
+        { defaultCpu with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; } }
+        |> fun cpu -> cnz { High = 0xBEuy; Low = 0xEFuy } cpu
 
-    newState.PC.Value
+    newCpu.PC.Value
     |> should equal 0xBEEF
 
-    newState.SP.Value
+    newCpu.SP.Value
     |> should equal 0xFFFD
     
     changes.Length
@@ -95,14 +95,14 @@ let ``CNZ 0xBEEF while Z flag is not set should push PC+3 to the stack then set 
 
 [<Test>]
 let ``CNZ 0xBEEF while Z flag is set should only increment PC`` () =
-    let (newState, changes) =
-        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; }; FLAGS = FlagMask.Z }
-        |> fun state -> cnz { High = 0xBEuy; Low = 0xEFuy } state
+    let (newCpu, changes) =
+        { defaultCpu with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; }; FLAGS = FlagMask.Z }
+        |> fun cpu -> cnz { High = 0xBEuy; Low = 0xEFuy } cpu
 
-    newState.PC.Value
+    newCpu.PC.Value
     |> should equal 0xAAAD
 
-    newState.SP.Value
+    newCpu.SP.Value
     |> should equal 0xFFFF
     
     changes.Length
@@ -115,9 +115,9 @@ let ``RZ while stack points to 0xBEEF and Z flag is set should set PC to 0xBEEF`
     Array.set memory 0xAAAA 0xEFuy
     Array.set memory 0xAAAB 0xBEuy
 
-    { defaultState with SP = { High = 0xAAuy; Low = 0xAAuy }; FLAGS = FlagMask.Z }
-    |> fun state -> rz state memory
-    |> fun state -> should equal 0xBEEF (state.PC.Value)
+    { defaultCpu with SP = { High = 0xAAuy; Low = 0xAAuy }; FLAGS = FlagMask.Z }
+    |> fun cpu -> rz cpu memory
+    |> fun cpu -> should equal 0xBEEF (cpu.PC.Value)
 
 [<Test>]
 let ``RZ while stack points to 0xBEEF and Z flag is not set should set PC to 0xBEEF`` () =
@@ -125,9 +125,9 @@ let ``RZ while stack points to 0xBEEF and Z flag is not set should set PC to 0xB
     Array.set memory 0xAAAA 0xEFuy
     Array.set memory 0xAAAB 0xBEuy
 
-    { defaultState with SP = { High = 0xAAuy; Low = 0xAAuy } }
-    |> fun state -> rz state memory
-    |> fun state -> should not' (equal 0xBEEF) (state.PC.Value)
+    { defaultCpu with SP = { High = 0xAAuy; Low = 0xAAuy } }
+    |> fun cpu -> rz cpu memory
+    |> fun cpu -> should not' (equal 0xBEEF) (cpu.PC.Value)
 
 
 // RET
@@ -137,33 +137,33 @@ let ``RET while stack points to 0xBEEF should set PC to 0xBEEF`` () =
     Array.set memory 0xAAAA 0xEFuy
     Array.set memory 0xAAAB 0xBEuy
 
-    { defaultState with SP = { High = 0xAAuy; Low = 0xAAuy } }
-    |> fun state -> ret state memory
-    |> fun state -> should equal 0xBEEF (state.PC.Value)
+    { defaultCpu with SP = { High = 0xAAuy; Low = 0xAAuy } }
+    |> fun cpu -> ret cpu memory
+    |> fun cpu -> should equal 0xBEEF (cpu.PC.Value)
 
 // JZ
 [<Test>]
 let ``JZ 0xBEEF while Z is set should set PC to 0xBEEF`` () =
-    { defaultState with FLAGS = FlagMask.Z }
-    |> fun state -> jz { High = 0xBEuy; Low = 0xEFuy } state
-    |> fun state -> should equal 0xBEEF (state.PC.Value)
+    { defaultCpu with FLAGS = FlagMask.Z }
+    |> fun cpu -> jz { High = 0xBEuy; Low = 0xEFuy } cpu
+    |> fun cpu -> should equal 0xBEEF (cpu.PC.Value)
 
 [<Test>]
 let ``JZ 0xBEEF while Z is not set should only incease PC by 3`` () =
-    jz { High = 0xBEuy; Low = 0xEFuy } defaultState
-    |> fun state -> should equal 0x03 (state.PC.Value)
+    jz { High = 0xBEuy; Low = 0xEFuy } defaultCpu
+    |> fun cpu -> should equal 0x03 (cpu.PC.Value)
 
 // CZ
 [<Test>]
 let ``CZ 0xBEEF while Z flag is set should push PC+3 to the stack then set PC to 0xBEEF`` () =
-    let (newState, changes) =
-        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; }; FLAGS = FlagMask.Z }
-        |> fun state -> cz { High = 0xBEuy; Low = 0xEFuy } state
+    let (newCpu, changes) =
+        { defaultCpu with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; }; FLAGS = FlagMask.Z }
+        |> fun cpu -> cz { High = 0xBEuy; Low = 0xEFuy } cpu
 
-    newState.PC.Value
+    newCpu.PC.Value
     |> should equal 0xBEEF
 
-    newState.SP.Value
+    newCpu.SP.Value
     |> should equal 0xFFFD
     
     changes.Length
@@ -187,14 +187,14 @@ let ``CZ 0xBEEF while Z flag is set should push PC+3 to the stack then set PC to
 
 [<Test>]
 let ``CZ 0xBEEF while Z flag is not set should only increment PC`` () =
-    let (newState, changes) =
-        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; } }
-        |> fun state -> cz { High = 0xBEuy; Low = 0xEFuy } state
+    let (newCpu, changes) =
+        { defaultCpu with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; } }
+        |> fun cpu -> cz { High = 0xBEuy; Low = 0xEFuy } cpu
 
-    newState.PC.Value
+    newCpu.PC.Value
     |> should equal 0xAAAD
 
-    newState.SP.Value
+    newCpu.SP.Value
     |> should equal 0xFFFF
     
     changes.Length
@@ -203,14 +203,14 @@ let ``CZ 0xBEEF while Z flag is not set should only increment PC`` () =
 // CALL
 [<Test>]
 let ``CALL 0xBEEF should push PC+3 to the stack then set PC to 0xBEEF`` () =
-    let (newState, changes) =
-        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; } }
-        |> fun state -> call { High = 0xBEuy; Low = 0xEFuy } state
+    let (newCpu, changes) =
+        { defaultCpu with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; } }
+        |> fun cpu -> call { High = 0xBEuy; Low = 0xEFuy } cpu
 
-    newState.PC.Value
+    newCpu.PC.Value
     |> should equal 0xBEEF
 
-    newState.SP.Value
+    newCpu.SP.Value
     |> should equal 0xFFFD
     
     changes.Length
@@ -239,9 +239,9 @@ let ``RNC while stack points to 0xBEEF and C flag is not set should set PC to 0x
     Array.set memory 0xAAAA 0xEFuy
     Array.set memory 0xAAAB 0xBEuy
 
-    { defaultState with SP = { High = 0xAAuy; Low = 0xAAuy } }
-    |> fun state -> rnc state memory
-    |> fun state -> should equal 0xBEEF (state.PC.Value)
+    { defaultCpu with SP = { High = 0xAAuy; Low = 0xAAuy } }
+    |> fun cpu -> rnc cpu memory
+    |> fun cpu -> should equal 0xBEEF (cpu.PC.Value)
 
 [<Test>]
 let ``RNC while stack points to 0xBEEF and C flag is set should not set PC to 0xBEEF`` () =
@@ -249,32 +249,32 @@ let ``RNC while stack points to 0xBEEF and C flag is set should not set PC to 0x
     Array.set memory 0xAAAA 0xEFuy
     Array.set memory 0xAAAB 0xBEuy
 
-    { defaultState with SP = { High = 0xAAuy; Low = 0xAAuy }; FLAGS = FlagMask.C }
-    |> fun state -> rnc state memory
-    |> fun state -> should not' (equal 0xBEEF) (state.PC.Value)
+    { defaultCpu with SP = { High = 0xAAuy; Low = 0xAAuy }; FLAGS = FlagMask.C }
+    |> fun cpu -> rnc cpu memory
+    |> fun cpu -> should not' (equal 0xBEEF) (cpu.PC.Value)
 
 // JNC
 [<Test>]
 let ``JNC 0xBEEF while C is not set should set PC to 0xBEEF`` () =
-    jnc { High = 0xBEuy; Low = 0xEFuy } defaultState
-    |> fun state -> should equal 0xBEEF (state.PC.Value)
+    jnc { High = 0xBEuy; Low = 0xEFuy } defaultCpu
+    |> fun cpu -> should equal 0xBEEF (cpu.PC.Value)
 
 [<Test>]
 let ``JNC 0xBEEF while C is set should only incease PC by 3`` () =
-    jnc { High = 0xBEuy; Low = 0xEFuy } { defaultState with FLAGS = FlagMask.C }
-    |> fun state -> should equal 0x03 (state.PC.Value)
+    jnc { High = 0xBEuy; Low = 0xEFuy } { defaultCpu with FLAGS = FlagMask.C }
+    |> fun cpu -> should equal 0x03 (cpu.PC.Value)
 
 // CNC
 [<Test>]
 let ``CNC 0xBEEF while C flag is not set should push PC+3 to the stack then set PC to 0xBEEF`` () =
-    let (newState, changes) =
-        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; } }
-        |> fun state -> cnc { High = 0xBEuy; Low = 0xEFuy } state
+    let (newCpu, changes) =
+        { defaultCpu with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; } }
+        |> fun cpu -> cnc { High = 0xBEuy; Low = 0xEFuy } cpu
 
-    newState.PC.Value
+    newCpu.PC.Value
     |> should equal 0xBEEF
 
-    newState.SP.Value
+    newCpu.SP.Value
     |> should equal 0xFFFD
     
     changes.Length
@@ -298,14 +298,14 @@ let ``CNC 0xBEEF while C flag is not set should push PC+3 to the stack then set 
 
 [<Test>]
 let ``CNC 0xBEEF while C flag is set should only increment PC`` () =
-    let (newState, changes) =
-        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; }; FLAGS = FlagMask.C }
-        |> fun state -> cnc { High = 0xBEuy; Low = 0xEFuy } state
+    let (newCpu, changes) =
+        { defaultCpu with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; }; FLAGS = FlagMask.C }
+        |> fun cpu -> cnc { High = 0xBEuy; Low = 0xEFuy } cpu
 
-    newState.PC.Value
+    newCpu.PC.Value
     |> should equal 0xAAAD
 
-    newState.SP.Value
+    newCpu.SP.Value
     |> should equal 0xFFFF
     
     changes.Length
@@ -318,32 +318,32 @@ let ``RC while stack points to 0xBEEF and C flag is set should set PC to 0xBEEF`
     Array.set memory 0xAAAA 0xEFuy
     Array.set memory 0xAAAB 0xBEuy
 
-    { defaultState with SP = { High = 0xAAuy; Low = 0xAAuy }; FLAGS = FlagMask.C }
-    |> fun state -> rc state memory
-    |> fun state -> should equal 0xBEEF (state.PC.Value)
+    { defaultCpu with SP = { High = 0xAAuy; Low = 0xAAuy }; FLAGS = FlagMask.C }
+    |> fun cpu -> rc cpu memory
+    |> fun cpu -> should equal 0xBEEF (cpu.PC.Value)
 
 // JC
 [<Test>]
 let ``JC 0xBEEF while C is set should set PC to 0xBEEF`` () =
-    jc { High = 0xBEuy; Low = 0xEFuy } { defaultState with FLAGS = FlagMask.C }
-    |> fun state -> should equal 0xBEEF (state.PC.Value)
+    jc { High = 0xBEuy; Low = 0xEFuy } { defaultCpu with FLAGS = FlagMask.C }
+    |> fun cpu -> should equal 0xBEEF (cpu.PC.Value)
 
 [<Test>]
 let ``JC 0xBEEF while C is not set should only incease PC by 3`` () =
-    jc { High = 0xBEuy; Low = 0xEFuy }defaultState
-    |> fun state -> should equal 0x03 (state.PC.Value)
+    jc { High = 0xBEuy; Low = 0xEFuy }defaultCpu
+    |> fun cpu -> should equal 0x03 (cpu.PC.Value)
 
 // CC
 [<Test>]
 let ``CC 0xBEEF while C flag is set should push PC+3 to the stack then set PC to 0xBEEF`` () =
-    let (newState, changes) =
-        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; }; FLAGS = FlagMask.C }
-        |> fun state -> cc { High = 0xBEuy; Low = 0xEFuy } state
+    let (newCpu, changes) =
+        { defaultCpu with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; }; FLAGS = FlagMask.C }
+        |> fun cpu -> cc { High = 0xBEuy; Low = 0xEFuy } cpu
 
-    newState.PC.Value
+    newCpu.PC.Value
     |> should equal 0xBEEF
 
-    newState.SP.Value
+    newCpu.SP.Value
     |> should equal 0xFFFD
     
     changes.Length
@@ -367,14 +367,14 @@ let ``CC 0xBEEF while C flag is set should push PC+3 to the stack then set PC to
 
 [<Test>]
 let ``CC 0xBEEF while C flag is set should only increment PC`` () =
-    let (newState, changes) =
-        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; } }
-        |> fun state -> cc { High = 0xBEuy; Low = 0xEFuy } state
+    let (newCpu, changes) =
+        { defaultCpu with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; } }
+        |> fun cpu -> cc { High = 0xBEuy; Low = 0xEFuy } cpu
 
-    newState.PC.Value
+    newCpu.PC.Value
     |> should equal 0xAAAD
 
-    newState.SP.Value
+    newCpu.SP.Value
     |> should equal 0xFFFF
     
     changes.Length
@@ -387,9 +387,9 @@ let ``RPO while stack points to 0xBEEF and P flag is not set should set PC to 0x
     Array.set memory 0xAAAA 0xEFuy
     Array.set memory 0xAAAB 0xBEuy
 
-    { defaultState with SP = { High = 0xAAuy; Low = 0xAAuy } }
-    |> fun state -> rpo state memory
-    |> fun state -> should equal 0xBEEF (state.PC.Value)
+    { defaultCpu with SP = { High = 0xAAuy; Low = 0xAAuy } }
+    |> fun cpu -> rpo cpu memory
+    |> fun cpu -> should equal 0xBEEF (cpu.PC.Value)
 
 [<Test>]
 let ``RPO while stack points to 0xBEEF and P flag is set should not set PC to 0xBEEF`` () =
@@ -397,32 +397,32 @@ let ``RPO while stack points to 0xBEEF and P flag is set should not set PC to 0x
     Array.set memory 0xAAAA 0xEFuy
     Array.set memory 0xAAAB 0xBEuy
 
-    { defaultState with SP = { High = 0xAAuy; Low = 0xAAuy }; FLAGS = FlagMask.P }
-    |> fun state -> rpo state memory
-    |> fun state -> should not' (equal 0xBEEF) (state.PC.Value)
+    { defaultCpu with SP = { High = 0xAAuy; Low = 0xAAuy }; FLAGS = FlagMask.P }
+    |> fun cpu -> rpo cpu memory
+    |> fun cpu -> should not' (equal 0xBEEF) (cpu.PC.Value)
 
 // JPO
 [<Test>]
 let ``JPO 0xBEEF while P is not set should set PC to 0xBEEF`` () =
-    jpo { High = 0xBEuy; Low = 0xEFuy } defaultState
-    |> fun state -> should equal 0xBEEF (state.PC.Value)
+    jpo { High = 0xBEuy; Low = 0xEFuy } defaultCpu
+    |> fun cpu -> should equal 0xBEEF (cpu.PC.Value)
 
 [<Test>]
 let ``JPO 0xBEEF while P is set should only incease PC by 3`` () =
-    jpo { High = 0xBEuy; Low = 0xEFuy } { defaultState with FLAGS = FlagMask.P }
-    |> fun state -> should equal 0x03 (state.PC.Value)
+    jpo { High = 0xBEuy; Low = 0xEFuy } { defaultCpu with FLAGS = FlagMask.P }
+    |> fun cpu -> should equal 0x03 (cpu.PC.Value)
 
 // CPO
 [<Test>]
 let ``CPO 0xBEEF while P flag is not set should push PC+3 to the stack then set PC to 0xBEEF`` () =
-    let (newState, changes) =
-        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; } }
-        |> fun state -> cpo { High = 0xBEuy; Low = 0xEFuy } state
+    let (newCpu, changes) =
+        { defaultCpu with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; } }
+        |> fun cpu -> cpo { High = 0xBEuy; Low = 0xEFuy } cpu
 
-    newState.PC.Value
+    newCpu.PC.Value
     |> should equal 0xBEEF
 
-    newState.SP.Value
+    newCpu.SP.Value
     |> should equal 0xFFFD
     
     changes.Length
@@ -446,14 +446,14 @@ let ``CPO 0xBEEF while P flag is not set should push PC+3 to the stack then set 
 
 [<Test>]
 let ``CPO 0xBEEF while P flag is set should only increment PC`` () =
-    let (newState, changes) =
-        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; }; FLAGS = FlagMask.P }
-        |> fun state -> cpo { High = 0xBEuy; Low = 0xEFuy } state
+    let (newCpu, changes) =
+        { defaultCpu with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; }; FLAGS = FlagMask.P }
+        |> fun cpu -> cpo { High = 0xBEuy; Low = 0xEFuy } cpu
 
-    newState.PC.Value
+    newCpu.PC.Value
     |> should equal 0xAAAD
 
-    newState.SP.Value
+    newCpu.SP.Value
     |> should equal 0xFFFF
     
     changes.Length
@@ -466,9 +466,9 @@ let ``RPE while stack points to 0xBEEF and P flag is set should set PC to 0xBEEF
     Array.set memory 0xAAAA 0xEFuy
     Array.set memory 0xAAAB 0xBEuy
 
-    { defaultState with SP = { High = 0xAAuy; Low = 0xAAuy }; FLAGS = FlagMask.P }
-    |> fun state -> rpe state memory
-    |> fun state -> should equal 0xBEEF (state.PC.Value)
+    { defaultCpu with SP = { High = 0xAAuy; Low = 0xAAuy }; FLAGS = FlagMask.P }
+    |> fun cpu -> rpe cpu memory
+    |> fun cpu -> should equal 0xBEEF (cpu.PC.Value)
 
 [<Test>]
 let ``RPE while stack points to 0xBEEF and P flag is not set should not set PC to 0xBEEF`` () =
@@ -476,32 +476,32 @@ let ``RPE while stack points to 0xBEEF and P flag is not set should not set PC t
     Array.set memory 0xAAAA 0xEFuy
     Array.set memory 0xAAAB 0xBEuy
 
-    { defaultState with SP = { High = 0xAAuy; Low = 0xAAuy } }
-    |> fun state -> rpe state memory
-    |> fun state -> should not' (equal 0xBEEF) (state.PC.Value)
+    { defaultCpu with SP = { High = 0xAAuy; Low = 0xAAuy } }
+    |> fun cpu -> rpe cpu memory
+    |> fun cpu -> should not' (equal 0xBEEF) (cpu.PC.Value)
 
 // JPE
 [<Test>]
 let ``JPE 0xBEEF while P is set should set PC to 0xBEEF`` () =
-    jpe { High = 0xBEuy; Low = 0xEFuy } { defaultState with FLAGS = FlagMask.P }
-    |> fun state -> should equal 0xBEEF (state.PC.Value)
+    jpe { High = 0xBEuy; Low = 0xEFuy } { defaultCpu with FLAGS = FlagMask.P }
+    |> fun cpu -> should equal 0xBEEF (cpu.PC.Value)
 
 [<Test>]
 let ``JPE 0xBEEF while P is not set should only incease PC by 3`` () =
-    jpe { High = 0xBEuy; Low = 0xEFuy } defaultState
-    |> fun state -> should equal 0x03 (state.PC.Value)
+    jpe { High = 0xBEuy; Low = 0xEFuy } defaultCpu
+    |> fun cpu -> should equal 0x03 (cpu.PC.Value)
 
 // CPE
 [<Test>]
 let ``CPE 0xBEEF while P flag is set should push PC+3 to the stack then set PC to 0xBEEF`` () =
-    let (newState, changes) =
-        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; };  FLAGS = FlagMask.P }
-        |> fun state -> cpe { High = 0xBEuy; Low = 0xEFuy } state
+    let (newCpu, changes) =
+        { defaultCpu with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; };  FLAGS = FlagMask.P }
+        |> fun cpu -> cpe { High = 0xBEuy; Low = 0xEFuy } cpu
 
-    newState.PC.Value
+    newCpu.PC.Value
     |> should equal 0xBEEF
 
-    newState.SP.Value
+    newCpu.SP.Value
     |> should equal 0xFFFD
     
     changes.Length
@@ -525,14 +525,14 @@ let ``CPE 0xBEEF while P flag is set should push PC+3 to the stack then set PC t
 
 [<Test>]
 let ``CPE 0xBEEF while P flag is not set should only increment PC`` () =
-    let (newState, changes) =
-        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; } }
-        |> fun state -> cpe { High = 0xBEuy; Low = 0xEFuy } state
+    let (newCpu, changes) =
+        { defaultCpu with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; } }
+        |> fun cpu -> cpe { High = 0xBEuy; Low = 0xEFuy } cpu
 
-    newState.PC.Value
+    newCpu.PC.Value
     |> should equal 0xAAAD
 
-    newState.SP.Value
+    newCpu.SP.Value
     |> should equal 0xFFFF
     
     changes.Length
@@ -545,9 +545,9 @@ let ``RP while stack points to 0xBEEF and S flag is not set should set PC to 0xB
     Array.set memory 0xAAAA 0xEFuy
     Array.set memory 0xAAAB 0xBEuy
 
-    { defaultState with SP = { High = 0xAAuy; Low = 0xAAuy } }
-    |> fun state -> rp state memory
-    |> fun state -> should equal 0xBEEF (state.PC.Value)
+    { defaultCpu with SP = { High = 0xAAuy; Low = 0xAAuy } }
+    |> fun cpu -> rp cpu memory
+    |> fun cpu -> should equal 0xBEEF (cpu.PC.Value)
 
 [<Test>]
 let ``RP while stack points to 0xBEEF and S flag is set should not set PC to 0xBEEF`` () =
@@ -555,32 +555,32 @@ let ``RP while stack points to 0xBEEF and S flag is set should not set PC to 0xB
     Array.set memory 0xAAAA 0xEFuy
     Array.set memory 0xAAAB 0xBEuy
 
-    { defaultState with SP = { High = 0xAAuy; Low = 0xAAuy }; FLAGS = FlagMask.S }
-    |> fun state -> rp state memory
-    |> fun state -> should not' (equal 0xBEEF) (state.PC.Value)
+    { defaultCpu with SP = { High = 0xAAuy; Low = 0xAAuy }; FLAGS = FlagMask.S }
+    |> fun cpu -> rp cpu memory
+    |> fun cpu -> should not' (equal 0xBEEF) (cpu.PC.Value)
 
 // JP
 [<Test>]
 let ``JP 0xBEEF while S is not set should set PC to 0xBEEF`` () =
-    jp { High = 0xBEuy; Low = 0xEFuy } defaultState
-    |> fun state -> should equal 0xBEEF (state.PC.Value)
+    jp { High = 0xBEuy; Low = 0xEFuy } defaultCpu
+    |> fun cpu -> should equal 0xBEEF (cpu.PC.Value)
 
 [<Test>]
 let ``JP 0xBEEF while S is set should only incease PC by 3`` () =
-    jp { High = 0xBEuy; Low = 0xEFuy } { defaultState with FLAGS = FlagMask.S }
-    |> fun state -> should equal 0x03 (state.PC.Value)
+    jp { High = 0xBEuy; Low = 0xEFuy } { defaultCpu with FLAGS = FlagMask.S }
+    |> fun cpu -> should equal 0x03 (cpu.PC.Value)
 
 // CP
 [<Test>]
 let ``CP 0xBEEF while S flag is not set should push PC+3 to the stack then set PC to 0xBEEF`` () =
-    let (newState, changes) =
-        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; } }
-        |> fun state -> cp { High = 0xBEuy; Low = 0xEFuy } state
+    let (newCpu, changes) =
+        { defaultCpu with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; } }
+        |> fun cpu -> cp { High = 0xBEuy; Low = 0xEFuy } cpu
 
-    newState.PC.Value
+    newCpu.PC.Value
     |> should equal 0xBEEF
 
-    newState.SP.Value
+    newCpu.SP.Value
     |> should equal 0xFFFD
     
     changes.Length
@@ -604,14 +604,14 @@ let ``CP 0xBEEF while S flag is not set should push PC+3 to the stack then set P
 
 [<Test>]
 let ``CP 0xBEEF while S flag is set should only increment PC`` () =
-    let (newState, changes) =
-        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; }; FLAGS = FlagMask.S  }
-        |> fun state -> cp { High = 0xBEuy; Low = 0xEFuy } state
+    let (newCpu, changes) =
+        { defaultCpu with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; }; FLAGS = FlagMask.S  }
+        |> fun cpu -> cp { High = 0xBEuy; Low = 0xEFuy } cpu
 
-    newState.PC.Value
+    newCpu.PC.Value
     |> should equal 0xAAAD
 
-    newState.SP.Value
+    newCpu.SP.Value
     |> should equal 0xFFFF
     
     changes.Length
@@ -624,9 +624,9 @@ let ``RM while stack points to 0xBEEF and S flag is set should set PC to 0xBEEF`
     Array.set memory 0xAAAA 0xEFuy
     Array.set memory 0xAAAB 0xBEuy
 
-    { defaultState with SP = { High = 0xAAuy; Low = 0xAAuy }; FLAGS = FlagMask.S }
-    |> fun state -> rm state memory
-    |> fun state -> should equal 0xBEEF (state.PC.Value)
+    { defaultCpu with SP = { High = 0xAAuy; Low = 0xAAuy }; FLAGS = FlagMask.S }
+    |> fun cpu -> rm cpu memory
+    |> fun cpu -> should equal 0xBEEF (cpu.PC.Value)
 
 [<Test>]
 let ``RM while stack points to 0xBEEF and S flag is not set should not set PC to 0xBEEF`` () =
@@ -634,32 +634,32 @@ let ``RM while stack points to 0xBEEF and S flag is not set should not set PC to
     Array.set memory 0xAAAA 0xEFuy
     Array.set memory 0xAAAB 0xBEuy
 
-    { defaultState with SP = { High = 0xAAuy; Low = 0xAAuy } }
-    |> fun state -> rm state memory
-    |> fun state -> should not' (equal 0xBEEF) (state.PC.Value)
+    { defaultCpu with SP = { High = 0xAAuy; Low = 0xAAuy } }
+    |> fun cpu -> rm cpu memory
+    |> fun cpu -> should not' (equal 0xBEEF) (cpu.PC.Value)
 
 // JM
 [<Test>]
 let ``JM 0xBEEF while S is set should set PC to 0xBEEF`` () =
-    jm { High = 0xBEuy; Low = 0xEFuy } { defaultState with FLAGS = FlagMask.S }
-    |> fun state -> should equal 0xBEEF (state.PC.Value)
+    jm { High = 0xBEuy; Low = 0xEFuy } { defaultCpu with FLAGS = FlagMask.S }
+    |> fun cpu -> should equal 0xBEEF (cpu.PC.Value)
 
 [<Test>]
 let ``JM 0xBEEF while S is not set should only incease PC by 3`` () =
-    jm { High = 0xBEuy; Low = 0xEFuy } defaultState
-    |> fun state -> should equal 0x03 (state.PC.Value)
+    jm { High = 0xBEuy; Low = 0xEFuy } defaultCpu
+    |> fun cpu -> should equal 0x03 (cpu.PC.Value)
 
 // CM
 [<Test>]
 let ``CM 0xBEEF while S flag is set should push PC+3 to the stack then set PC to 0xBEEF`` () =
-    let (newState, changes) =
-        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; }; FLAGS = FlagMask.S }
-        |> fun state -> cm { High = 0xBEuy; Low = 0xEFuy } state
+    let (newCpu, changes) =
+        { defaultCpu with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; }; FLAGS = FlagMask.S }
+        |> fun cpu -> cm { High = 0xBEuy; Low = 0xEFuy } cpu
 
-    newState.PC.Value
+    newCpu.PC.Value
     |> should equal 0xBEEF
 
-    newState.SP.Value
+    newCpu.SP.Value
     |> should equal 0xFFFD
     
     changes.Length
@@ -683,14 +683,14 @@ let ``CM 0xBEEF while S flag is set should push PC+3 to the stack then set PC to
 
 [<Test>]
 let ``CM 0xBEEF while S flag is not set should only increment PC`` () =
-    let (newState, changes) =
-        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; } }
-        |> fun state -> cm { High = 0xBEuy; Low = 0xEFuy } state
+    let (newCpu, changes) =
+        { defaultCpu with SP = { High = 0xFFuy; Low = 0xFFuy; }; PC = { High = 0xAAuy; Low = 0xAAuy; } }
+        |> fun cpu -> cm { High = 0xBEuy; Low = 0xEFuy } cpu
 
-    newState.PC.Value
+    newCpu.PC.Value
     |> should equal 0xAAAD
 
-    newState.SP.Value
+    newCpu.SP.Value
     |> should equal 0xFFFF
     
     changes.Length

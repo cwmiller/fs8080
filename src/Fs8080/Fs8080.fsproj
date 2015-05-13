@@ -45,12 +45,11 @@
     <Compile Include="Types.fs" />
     <Compile Include="Registers.fs" />
     <Compile Include="Memory.fs" />
-    <Compile Include="Instructions.fs" />
     <Compile Include="ControlInstructions.fs" />
     <Compile Include="MoveInstructions.fs" />
     <Compile Include="LogicalInstructions.fs" />
     <Compile Include="JumpInstructions.fs" />
-    <Compile Include="Cpu.fs" />
+    <Compile Include="Emulator.fs" />
     <None Include="Script.fsx" />
   </ItemGroup>
   <PropertyGroup>

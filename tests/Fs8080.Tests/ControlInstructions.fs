@@ -1,4 +1,4 @@
-﻿module Fs8080.ControlInstructions
+﻿module Fs8080.Tests.ControlInstructions
 
 open NUnit.Framework
 open FsUnit
@@ -6,7 +6,7 @@ open FsUnit
 open Fs8080.Types
 open Fs8080.ControlInstructions
 
-let internal defaultState = {
+let internal defaultCpu = {
     A = 0uy;
     B = 0uy;
     C = 0uy;
@@ -19,21 +19,21 @@ let internal defaultState = {
     PC = { High = 0uy; Low = 0uy; };
     WC = 0;
     InterruptsEnabled = false;
-    RunState = RunState.Running;
+    State = State.Running;
 }
 
 // NOP
 [<Test>]
 let ``NOP should only affect PC and WC states`` () =
-    defaultState
+    defaultCpu
     |> nop
-    |> fun state -> (state.A + state.B + state.C + state.D + state.E + state.FLAGS)
+    |> fun cpu -> (cpu.A + cpu.B + cpu.C + cpu.D + cpu.E + cpu.FLAGS)
     |> should equal 0
 
 // HLT
 [<Test>]
-let ``HLT should set RunState to Halted`` () =
-    defaultState
+let ``HLT should set State to Halted`` () =
+    defaultCpu
     |> hlt
-    |> fun state -> state.RunState
-    |> should equal RunState.Halted
+    |> fun cpu -> cpu.State
+    |> should equal State.Halted

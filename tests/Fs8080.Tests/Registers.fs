@@ -6,7 +6,7 @@ open FsUnit
 open Fs8080.Types
 open Fs8080.Registers
 
-let defaultState = {
+let defaultCpu = {
     A = 0uy;
     B = 0uy;
     C = 0uy;
@@ -19,22 +19,22 @@ let defaultState = {
     PC = { High = 0uy; Low = 0uy; };
     WC = 0;
     InterruptsEnabled = false;
-    RunState = RunState.Running;
+    State = State.Running;
 }
 
 [<Test>]
 let ``Setting 16 bit registers should affect 8 bit registers`` () =
-    let state = set16 BC { High = 0xAAuy; Low = 0xBBuy; } defaultState
+    let cpu = set16 BC { High = 0xAAuy; Low = 0xBBuy; } defaultCpu
 
-    get8 B state
+    get8 B cpu
     |> should equal 0xAAuy
 
-    get8 C state
+    get8 C cpu
     |> should equal 0xBBuy
 
 [<Test>]
 let ``Setting 8 bit registers should affect 16 bit registers`` () =
-    defaultState
+    defaultCpu
     |> set8 B 0xAAuy
     |> set8 C 0xBBuy
     |> get16 BC
@@ -42,70 +42,70 @@ let ``Setting 8 bit registers should affect 16 bit registers`` () =
     
 [<Test>]
 let ``S flag should be set for an arithmetic result of 128`` () =
-    defaultState
+    defaultCpu
     |> flagS 128uy
-    |> fun state -> state.FLAGS &&& FlagMask.S
+    |> fun cpu -> cpu.FLAGS &&& FlagMask.S
     |> should equal FlagMask.S
 
 [<Test>]
 let ``S flag should not be set for an arithmetic result of 64`` () =
-    defaultState
+    defaultCpu
     |> flagS 64uy
-    |> fun state -> state.FLAGS &&& FlagMask.S
+    |> fun cpu -> cpu.FLAGS &&& FlagMask.S
     |> should not' (equal FlagMask.S)
 
 [<Test>]
 let ``Z flag should be set for an arithmetic result of 0`` () =
-    defaultState
+    defaultCpu
     |> flagZ 0uy
-    |> fun state -> state.FLAGS &&& FlagMask.Z
+    |> fun cpu -> cpu.FLAGS &&& FlagMask.Z
     |> should equal FlagMask.Z
 
 [<Test>]
 let ``Z flag should not be set for an arithmetic result of 1`` () =
-    defaultState
+    defaultCpu
     |> flagZ 1uy
-    |> fun state -> state.FLAGS &&& FlagMask.Z
+    |> fun cpu -> cpu.FLAGS &&& FlagMask.Z
     |> should not' (equal FlagMask.Z)
 
 [<Test>]
 let ``P flag should be set for an arithmetic result of 0`` () =
-    defaultState
+    defaultCpu
     |> flagP 0uy
-    |> fun state -> state.FLAGS &&& FlagMask.P
+    |> fun cpu -> cpu.FLAGS &&& FlagMask.P
     |> should equal FlagMask.P
 
 [<Test>]
 let ``P flag should not be set for an arithmetic result of 191`` () =
-    defaultState
+    defaultCpu
     |> flagP 191uy
-    |> fun state -> state.FLAGS &&& FlagMask.P
+    |> fun cpu -> cpu.FLAGS &&& FlagMask.P
     |> should not' (equal FlagMask.P)
 
 [<Test>]
 let ``P flag should be set for an arithmetic result of 105`` () =
-    defaultState
+    defaultCpu
     |> flagP 105uy
-    |> fun state -> state.FLAGS &&& FlagMask.P
+    |> fun cpu -> cpu.FLAGS &&& FlagMask.P
     |> should equal FlagMask.P
 
 [<Test>]
 let ``A flag should be set for an arithmetic result of 0`` () =
-    defaultState
+    defaultCpu
     |> flagA 0uy
-    |> fun state -> state.FLAGS &&& FlagMask.A
+    |> fun cpu -> cpu.FLAGS &&& FlagMask.A
     |> should equal FlagMask.A
 
 [<Test>]
 let ``A flag should be set for an arithmetic result of 240`` () =
-    defaultState
+    defaultCpu
     |> flagA 240uy
-    |> fun state -> state.FLAGS &&& FlagMask.A
+    |> fun cpu -> cpu.FLAGS &&& FlagMask.A
     |> should equal FlagMask.A
 
 [<Test>]
 let ``A flag should not be set for an arithmetic result of 242`` () =
-    defaultState
+    defaultCpu
     |> flagA 242uy
-    |> fun state -> state.FLAGS &&& FlagMask.A
+    |> fun cpu -> cpu.FLAGS &&& FlagMask.A
     |> should not' (equal FlagMask.A)

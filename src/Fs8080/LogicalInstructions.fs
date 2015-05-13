@@ -5,426 +5,426 @@ open Fs8080.Registers
 open Fs8080.Memory
 
 // Increment value in 16bit register 
-let inx register state =
-    (get16 register state) + 1us
-    |> fun value -> set16 register value state
+let inx register cpu =
+    (get16 register cpu) + 1us
+    |> fun value -> set16 register value cpu
     |> incPC 1us
     |> incWC 5
 
 // Increment value in 8bit register
-let inr register state =
-    let value = (get8 register state) + 1uy
+let inr register cpu =
+    let value = (get8 register cpu) + 1uy
             
-    set8 register value state
+    set8 register value cpu
     |> flagSZAP value
     |> incPC 1us
     |> incWC 5
 
 // Decrement value in 8bit register
-let dcr register state =
-    let value = (get8 register state) - 1uy
+let dcr register cpu =
+    let value = (get8 register cpu) - 1uy
 
-    set8 register value state
+    set8 register value cpu
     |> flagSZAP value
     |> incPC 1us
     |> incWC 5
 
 // TODO
-let daa state =
-    incPC 1us state
+let daa cpu =
+    incPC 1us cpu
     |> incWC 4
 
 // Rotate A left
-let rlc state = 
-    let value = get8 A state
+let rlc cpu = 
+    let value = get8 A cpu
     let highbit = value >>> 7
 
-    set8 A (value <<< 1) state
-    |> fun state -> 
+    set8 A (value <<< 1) cpu
+    |> fun cpu -> 
         if highbit = 1uy // Set C flag to previous high bit
-        then { state with FLAGS = state.FLAGS ||| FlagMask.C; }
-        else { state with FLAGS = state.FLAGS &&& ~~~FlagMask.C; }
+        then { cpu with FLAGS = cpu.FLAGS ||| FlagMask.C; }
+        else { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.C; }
     |> incPC 1us
     |> incWC 4     
 
 // Add value in 16bit register to HL
-let dad register state =
-    let existing = get16 HL state
-    let sum = (get16 register state) + existing
+let dad register cpu =
+    let existing = get16 HL cpu
+    let sum = (get16 register cpu) + existing
 
-    set16 HL sum state
-    |> fun state ->
+    set16 HL sum cpu
+    |> fun cpu ->
         if sum < existing // Set Carry flag if new value overflowed
-        then { state with FLAGS = state.FLAGS ||| FlagMask.C; }         
-        else { state with FLAGS = state.FLAGS &&& ~~~FlagMask.C; }
+        then { cpu with FLAGS = cpu.FLAGS ||| FlagMask.C; }         
+        else { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.C; }
     |> incPC 1us
     |> incWC 10
 
 // Decrement 16bit register
-let dcx register state =
-    get16 register state
-    |> fun value -> set16 register (value - 1us) state
+let dcx register cpu =
+    get16 register cpu
+    |> fun value -> set16 register (value - 1us) cpu
     |> incPC 1us
     |> incWC 5
 
 // Rotate A right
-let rrc state =
-    let value = get8 A state
+let rrc cpu =
+    let value = get8 A cpu
     let lowbit = value &&& 0x01uy
     // Shift the value right and set the high bit to the old low bit
     let shifted = (value >>> 1) ||| (lowbit <<< 7)
 
-    set8 A shifted state
-    |> fun state -> 
+    set8 A shifted cpu
+    |> fun cpu -> 
         if lowbit = 1uy // Set C flag to previous low bit
-        then { state with FLAGS = state.FLAGS ||| FlagMask.C; }
-        else { state with FLAGS = state.FLAGS &&& ~~~FlagMask.C; }
+        then { cpu with FLAGS = cpu.FLAGS ||| FlagMask.C; }
+        else { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.C; }
     |> incPC 1us
     |> incWC 4  
 
 // Rotate A left through carry
-let ral state =
-    let value = get8 A state
+let ral cpu =
+    let value = get8 A cpu
     let highbit = value >>> 7
 
     // Shift the value left and set the lowbit to the C flag
-    let shifted = (value <<< 1) ||| (state.FLAGS &&& FlagMask.C)
+    let shifted = (value <<< 1) ||| (cpu.FLAGS &&& FlagMask.C)
 
-    set8 A shifted state
-    |> fun state -> 
+    set8 A shifted cpu
+    |> fun cpu -> 
         if highbit = 1uy // Set C flag to previous high bit
-        then { state with FLAGS = state.FLAGS ||| FlagMask.C; }
-        else { state with FLAGS = state.FLAGS &&& ~~~FlagMask.C; }
+        then { cpu with FLAGS = cpu.FLAGS ||| FlagMask.C; }
+        else { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.C; }
     |> incPC 1us
     |> incWC 4   
 
 // Rotate A right through carry
-let rar state =
-    let value = get8 A state
+let rar cpu =
+    let value = get8 A cpu
     let highbit = value >>> 7
     let lowbit = value &&& 0x01uy
 
     // Shift the value right and set the high bit to the previous high bit
     let adjusted = (value >>> 1) ||| (highbit <<< 7)
 
-    set8 A adjusted state
-    |> fun state -> 
+    set8 A adjusted cpu
+    |> fun cpu -> 
         if lowbit = 1uy // Set C flag to previous low bit
-        then { state with FLAGS = state.FLAGS ||| FlagMask.C; }
-        else { state with FLAGS = state.FLAGS &&& ~~~FlagMask.C; }
+        then { cpu with FLAGS = cpu.FLAGS ||| FlagMask.C; }
+        else { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.C; }
     |> incPC 1us
     |> incWC 4  
 
 // Set A to NOT A
-let cma state =
-    { state with A = ~~~state.A; }
+let cma cpu =
+    { cpu with A = ~~~cpu.A; }
     |> incPC 1us
     |> incWC 4
 
 // Increment value in memory pointed to by HL 
-let inr_m state memory =
-    let address = (get16 HL state)
+let inr_m cpu memory =
+    let address = (get16 HL cpu)
     let value = (fetch address memory) + 1uy
             
-    flagSZAP value state
+    flagSZAP value cpu
     |> incPC 1us
     |> incWC 10
-    |> fun state -> (state, [(address, value)])
+    |> fun cpu -> (cpu, [(address, value)])
 
 
 // Decrement value in memory pointed to by HL 
-let dcr_m state memory =
-    let address = (get16 HL state)
+let dcr_m cpu memory =
+    let address = (get16 HL cpu)
     let value = (fetch address memory) - 1uy
             
-    flagSZAP value state
+    flagSZAP value cpu
     |> incPC 1us
     |> incWC 10
-    |> fun state -> (state, [(address, value)])
+    |> fun cpu -> (cpu, [(address, value)])
 
 // Enables the C flag
-let stc state =
-    { state with FLAGS = state.FLAGS ||| FlagMask.C }
+let stc cpu =
+    { cpu with FLAGS = cpu.FLAGS ||| FlagMask.C }
     |> incPC 1us
     |> incWC 4
 
 // Set the C flag to NOT C
-let cmc state =
-    { state with FLAGS = state.FLAGS ^^^ FlagMask.C }
+let cmc cpu =
+    { cpu with FLAGS = cpu.FLAGS ^^^ FlagMask.C }
     |> incPC 1us
     |> incWC 4
 
 // Increment A by 8bit register
-let add register state =
-    let existing = get8 A state
-    let sum = existing + (get8 register state)
+let add register cpu =
+    let existing = get8 A cpu
+    let sum = existing + (get8 register cpu)
 
-    set8 A sum state
+    set8 A sum cpu
     |> flagSZAP sum
     |> flagCForAdd existing sum
     |> incPC 1us
     |> incWC 4
 
 // Increment A by value in address in HL
-let add_m state memory =
-    let value = fetch (get16 HL state) memory
-    let existing = get8 A state
+let add_m cpu memory =
+    let value = fetch (get16 HL cpu) memory
+    let existing = get8 A cpu
     let sum = existing + value
 
-    set8 A sum state
+    set8 A sum cpu
     |> flagSZAP sum
     |> flagCForAdd existing sum
     |> incPC 1us
     |> incWC 7
 
 // Increment A by register and Carry
-let adc register state =
-    let existing = get8 A state
-    let sum = existing + (get8 register state) + (state.FLAGS &&& FlagMask.C)
+let adc register cpu =
+    let existing = get8 A cpu
+    let sum = existing + (get8 register cpu) + (cpu.FLAGS &&& FlagMask.C)
 
-    set8 A sum state
+    set8 A sum cpu
     |> flagSZAP sum
     |> flagCForAdd existing sum
     |> incPC 1us
     |> incWC 4
 
 // Increment A by value in address in HL and Carry
-let adc_m state memory =
-    let value = fetch (get16 HL state) memory
-    let existing = get8 A state
-    let sum = existing + value + (state.FLAGS &&& FlagMask.C)
+let adc_m cpu memory =
+    let value = fetch (get16 HL cpu) memory
+    let existing = get8 A cpu
+    let sum = existing + value + (cpu.FLAGS &&& FlagMask.C)
 
-    set8 A sum state
+    set8 A sum cpu
     |> flagSZAP sum
     |> flagCForAdd existing sum
     |> incPC 1us
     |> incWC 7
 
 // Decrement A by value in register
-let sub register state =
-    let existing = get8 A state
-    let diff = existing - (get8 register state)
+let sub register cpu =
+    let existing = get8 A cpu
+    let diff = existing - (get8 register cpu)
 
-    set8 A diff state
+    set8 A diff cpu
     |> flagSZAP diff
     |> flagCForSub existing diff
     |> incPC 1us
     |> incWC 4
 
 // Decrement A by value pointed to by HL
-let sub_m state memory =
-    let existing = get8 A state
+let sub_m cpu memory =
+    let existing = get8 A cpu
 
     let diff =
-        get16 HL state
+        get16 HL cpu
         |> fun addr -> fetch addr memory
         |> (-) existing
 
-    set8 A diff state
+    set8 A diff cpu
     |> flagSZAP diff
     |> flagCForSub existing diff
     |> incPC 1us
     |> incWC 7
 
 // Decrement A by value in register with borrow
-let sbb register state =
-    let existing = get8 A state
-    let diff = existing - ((get8 register state) + (state.FLAGS &&& FlagMask.C))
+let sbb register cpu =
+    let existing = get8 A cpu
+    let diff = existing - ((get8 register cpu) + (cpu.FLAGS &&& FlagMask.C))
 
-    set8 A diff state
+    set8 A diff cpu
     |> flagSZAP diff
     |> flagCForSub existing diff
     |> incPC 1us
     |> incWC 4
 
 // Decrement A by value in memory pointed to by HL and borrow
-let sbb_m state memory =
-    let existing = get8 A state
+let sbb_m cpu memory =
+    let existing = get8 A cpu
 
     let diff =
-        get16 HL state
+        get16 HL cpu
         |> fun addr -> fetch addr memory
-        |> fun value -> existing - (value + (state.FLAGS &&& FlagMask.C))
+        |> fun value -> existing - (value + (cpu.FLAGS &&& FlagMask.C))
 
-    set8 A diff state
+    set8 A diff cpu
     |> flagSZAP diff
     |> flagCForSub existing diff
     |> incPC 1us
     |> incWC 7
 
 // A = A AND register
-let ana register state =
+let ana register cpu =
     let value =
-        get8 register state
-        |> (&&&) state.A
+        get8 register cpu
+        |> (&&&) cpu.A
 
-    set8 A value state
+    set8 A value cpu
     |> flagSZAP value
-    |> fun state -> { state with FLAGS = state.FLAGS &&& ~~~FlagMask.C } // Always clear carry
+    |> fun cpu -> { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.C } // Always clear carry
     |> incPC 1us
     |> incWC 4
 
 // A = A AND (HL)
-let ana_m state memory =
+let ana_m cpu memory =
     let value =
-        get16 HL state
+        get16 HL cpu
         |> fun address -> fetch address memory
-        |> (&&&) state.A
+        |> (&&&) cpu.A
 
-    set8 A value state
+    set8 A value cpu
     |> flagSZAP value
-    |> fun state -> { state with FLAGS = state.FLAGS &&& ~~~FlagMask.C } // Always clear carry
+    |> fun cpu -> { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.C } // Always clear carry
     |> incPC 1us
     |> incWC 7
 
 // A = A XOR register
-let xra register state =
+let xra register cpu =
     let value =
-        get8 register state
-        |> (^^^) state.A
+        get8 register cpu
+        |> (^^^) cpu.A
 
-    set8 A value state
+    set8 A value cpu
     |> flagSZAP value
-    |> fun state -> { state with FLAGS = state.FLAGS &&& ~~~FlagMask.C } // Always clear carry
+    |> fun cpu -> { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.C } // Always clear carry
     |> incPC 1us
     |> incWC 4
 
 // A = A XOR (HL)
-let xra_m state memory =
+let xra_m cpu memory =
     let value =
-        get16 HL state
+        get16 HL cpu
         |> fun address -> fetch address memory
-        |> (^^^) state.A
+        |> (^^^) cpu.A
 
-    set8 A value state
+    set8 A value cpu
     |> flagSZAP value
-    |> fun state -> { state with FLAGS = state.FLAGS &&& ~~~FlagMask.C } // Always clear carry
+    |> fun cpu -> { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.C } // Always clear carry
     |> incPC 1us
     |> incWC 7
 
 // A = A OR register
-let ora register state =
+let ora register cpu =
     let value =
-        get8 register state
-        |> (|||) state.A
+        get8 register cpu
+        |> (|||) cpu.A
 
-    set8 A value state
+    set8 A value cpu
     |> flagSZAP value
-    |> fun state -> { state with FLAGS = state.FLAGS &&& ~~~FlagMask.C } // Always clear carry
+    |> fun cpu -> { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.C } // Always clear carry
     |> incPC 1us
     |> incWC 4
 
 // A = A OR (HL)
-let ora_m state memory =
+let ora_m cpu memory =
     let value =
-        get16 HL state
+        get16 HL cpu
         |> fun address -> fetch address memory
-        |> (|||) state.A
+        |> (|||) cpu.A
 
-    set8 A value state
+    set8 A value cpu
     |> flagSZAP value
-    |> fun state -> { state with FLAGS = state.FLAGS &&& ~~~FlagMask.C } // Always clear carry
+    |> fun cpu -> { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.C } // Always clear carry
     |> incPC 1us
     |> incWC 7
 
 // A = A AND byte
-let ani byte state =
-    let value = state.A &&& byte
+let ani byte cpu =
+    let value = cpu.A &&& byte
 
-    set8 A value state
+    set8 A value cpu
     |> flagSZAP value
-    |> fun state -> { state with FLAGS = state.FLAGS &&& ~~~FlagMask.C } // Always clear carry
+    |> fun cpu -> { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.C } // Always clear carry
     |> incPC 2us
     |> incWC 7
 
 // Compare register to A
-let cmp register state =
+let cmp register cpu =
     // All this needs to do is set FLAGS based on the difference
-    let diff = state.A - (get8 register state)
+    let diff = cpu.A - (get8 register cpu)
 
-    flagSZAP diff state
-    |> flagCForSub state.A diff
+    flagSZAP diff cpu
+    |> flagCForSub cpu.A diff
     |> incPC 1us
     |> incWC 4
 
 // Compare (HL) to A
-let cmp_m state memory =
+let cmp_m cpu memory =
     // All this needs to do is set FLAGS based on the difference
     let diff = 
-        get16 HL state
+        get16 HL cpu
         |> fun address -> fetch address memory
-        |> fun amount -> state.A - amount
+        |> fun amount -> cpu.A - amount
     
-    flagSZAP diff state
-    |> flagCForSub state.A diff
+    flagSZAP diff cpu
+    |> flagCForSub cpu.A diff
     |> incPC 1us
     |> incWC 7
 
 // A = A + byte
-let adi byte state =
-    let sum = state.A + byte
+let adi byte cpu =
+    let sum = cpu.A + byte
 
-    set8 A sum state
+    set8 A sum cpu
     |> flagSZAP sum
-    |> flagCForAdd state.A sum
+    |> flagCForAdd cpu.A sum
     |> incPC 2us
     |> incWC 7
 
 // A = A + byte with Carry
-let aci byte state =
-    let sum = state.A + byte + (state.FLAGS &&& FlagMask.C)
+let aci byte cpu =
+    let sum = cpu.A + byte + (cpu.FLAGS &&& FlagMask.C)
 
-    set8 A sum state
+    set8 A sum cpu
     |> flagSZAP sum
-    |> flagCForAdd state.A sum
+    |> flagCForAdd cpu.A sum
     |> incPC 2us
     |> incWC 7
 
 // A = A - byte
-let sui byte state =
-    let diff = state.A - byte
+let sui byte cpu =
+    let diff = cpu.A - byte
 
-    set8 A diff state
+    set8 A diff cpu
     |> flagSZAP diff
-    |> flagCForAdd state.A diff
+    |> flagCForAdd cpu.A diff
     |> incPC 2us
     |> incWC 7
 
 // A = A - byte with Borrow
-let sbi byte state =
-    let diff = state.A - (byte + (state.FLAGS &&& FlagMask.C))
+let sbi byte cpu =
+    let diff = cpu.A - (byte + (cpu.FLAGS &&& FlagMask.C))
 
-    set8 A diff state
+    set8 A diff cpu
     |> flagSZAP diff
-    |> flagCForAdd state.A diff
+    |> flagCForAdd cpu.A diff
     |> incPC 2us
     |> incWC 7
 
 // A = A XOR byte
-let xri byte state =
-    let result = state.A ^^^ byte
+let xri byte cpu =
+    let result = cpu.A ^^^ byte
 
-    set8 A result state
+    set8 A result cpu
     |> flagSZAP result
-    |> fun state -> { state with FLAGS = state.FLAGS &&& ~~~FlagMask.C } // Always clear carry
+    |> fun cpu -> { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.C } // Always clear carry
     |> incPC 2us
     |> incWC 7
 
 // A = A OR byte
-let ori byte state =
-    let result = state.A ||| byte
+let ori byte cpu =
+    let result = cpu.A ||| byte
 
-    set8 A result state
+    set8 A result cpu
     |> flagSZAP result
-    |> fun state -> { state with FLAGS = state.FLAGS &&& ~~~FlagMask.C } // Always clear carry
+    |> fun cpu -> { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.C } // Always clear carry
     |> incPC 2us
     |> incWC 7
 
 // Compare A with byte
-let cpi byte state =
-    let diff = state.A - byte
+let cpi byte cpu =
+    let diff = cpu.A - byte
 
-    flagSZAP diff state
-    |> flagCForSub state.A diff
+    flagSZAP diff cpu
+    |> flagCForSub cpu.A diff
     |> incPC 2us
     |> incWC 7

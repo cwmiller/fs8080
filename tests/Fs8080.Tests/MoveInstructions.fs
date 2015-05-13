@@ -7,7 +7,7 @@ open Fs8080.Types
 open Fs8080.Registers
 open Fs8080.MoveInstructions
 
-let internal defaultState = {
+let internal defaultCpu = {
     A = 0uy;
     B = 0uy;
     C = 0uy;
@@ -20,26 +20,26 @@ let internal defaultState = {
     PC = { High = 0uy; Low = 0uy; };
     WC = 0;
     InterruptsEnabled = false;
-    RunState = RunState.Running;
+    State = State.Running;
 }
 
 // LXI
 [<Test>]
 let ``LXI B, 0xFFF0 should load 0xFF into B and 0xF0 into C`` () =
-    let newState = lxi BC { High = 0xFFuy; Low = 0xF0uy } defaultState
+    let newcpu = lxi BC { High = 0xFFuy; Low = 0xF0uy } defaultCpu
 
-    newState.B
+    newcpu.B
     |> should equal 0xFF
 
-    newState.C
+    newcpu.C
     |> should equal 0xF0
 
 // SHLD
 [<Test>]
 let ``SHLD 0xBEEF while HL contains 0xDEAD should copy 0xAD to address 0xBEEF and 0xDE to address 0xBEF0`` () =
     let changes =
-        { defaultState with H = 0xDEuy; L = 0xADuy }
-        |> fun state -> shld { High = 0xBEuy; Low = 0xEFuy } state
+        { defaultCpu with H = 0xDEuy; L = 0xADuy }
+        |> fun cpu -> shld { High = 0xBEuy; Low = 0xEFuy } cpu
         |> fun (_, changes) -> changes
 
     changes.Length
@@ -70,19 +70,19 @@ let ``LHLD 0xDEAD while memory address 0xDEAD contains 0xEF and 0xDEAE contains 
     Array.set memory 0xDEAD 0xEFuy
     Array.set memory 0xDEAE 0xBEuy
 
-    let newState = lhld { High = 0xDEuy; Low = 0xADuy } defaultState memory
+    let newcpu = lhld { High = 0xDEuy; Low = 0xADuy } defaultCpu memory
 
-    newState.H
+    newcpu.H
     |> should equal 0xBE
 
-    newState.L
+    newcpu.L
     |> should equal 0xEF
 
 // STAX
 [<Test>]
 let ``STAX B while A contains 0xFE and BC contains 0xAABB with should place value from A (0xFE) into memory address 0xAABB`` () =
     let changes =
-        { defaultState with A = 0xFEuy; B = 0xAAuy; C = 0xBBuy; }
+        { defaultCpu with A = 0xFEuy; B = 0xAAuy; C = 0xBBuy; }
         |> stax BC
         |> fun (_, changes) -> changes
 
@@ -100,8 +100,8 @@ let ``STAX B while A contains 0xFE and BC contains 0xAABB with should place valu
 // MVI
 [<Test>]
 let ``MVI B, 255 should set B to 0xFF`` () =
-    defaultState
-    |> fun state -> mvi B 0xFFuy state
+    defaultCpu
+    |> fun cpu -> mvi B 0xFFuy cpu
     |> get8 B
     |> should equal 0xFFuy
 
@@ -111,9 +111,9 @@ let ``LDAX D when DE contains memory address 0xBEEF, containing the value 0xCC, 
     let memory = Array.zeroCreate<byte> 65535
     Array.set memory 0xBEEF 0xCCuy
 
-    { defaultState with D = 0xBEuy; E = 0xEFuy }
-    |> fun state -> ldax DE state memory
-    |> fun state -> should equal 0xCC (state.A)
+    { defaultCpu with D = 0xBEuy; E = 0xEFuy }
+    |> fun cpu -> ldax DE cpu memory
+    |> fun cpu -> should equal 0xCC (cpu.A)
 
 // STA
 [<Test>]
@@ -123,8 +123,8 @@ let ``STA 0xBEEF while A contains 0xFF should set memory address 0xBEEF to 0xFF`
     Array.set memory 2 0xBEuy
 
     let changes = 
-        { defaultState with A = 0xFFuy }
-        |> fun state -> sta { High = 0xBEuy; Low = 0xEFuy } state
+        { defaultCpu with A = 0xFFuy }
+        |> fun cpu -> sta { High = 0xBEuy; Low = 0xEFuy } cpu
         |> fun (_, changes) -> changes.Head
 
     changes
@@ -143,8 +143,8 @@ let ``MVI M, 0xCC while HL contains 0xBEEF should set 0xBEEF to 0xCC`` () =
     Array.set memory 0x1 0xCCuy
 
     let changes = 
-        { defaultState with H = 0xBEuy; L = 0xEFuy; }
-        |> fun state -> mvi_m 0xcc state
+        { defaultCpu with H = 0xBEuy; L = 0xEFuy; }
+        |> fun cpu -> mvi_m 0xcc cpu
         |> fun (_, changes) -> changes
 
     changes.Length
@@ -166,14 +166,14 @@ let ``LDA 0xBEEF while 0xBEEF contains 0xAB should set A to 0xAB`` () =
     Array.set memory 0x2 0xBEuy
     Array.set memory 0xBEEF 0xABuy
 
-    lda { High = 0xBEuy; Low = 0xEFuy } defaultState memory
+    lda { High = 0xBEuy; Low = 0xEFuy } defaultCpu memory
     |> get8 A
     |> should equal 0xAB
 
 // MOV
 [<Test>]
 let ``MOV B, C while C contains 0xAA should set B to 0xAA`` () =
-    { defaultState with C = 0xAAuy; }
+    { defaultCpu with C = 0xAAuy; }
     |> mov_r_r B C
     |> get8 B
     |> should equal 0xAA
@@ -183,15 +183,15 @@ let ``MOV C, M while HL contains address 0xDEAD, containing value 0xBE, should s
     let memory = Array.zeroCreate<byte> 65535
     Array.set memory 0xDEAD 0xBEuy
 
-    { defaultState with H = 0xDEuy; L = 0xADuy }
-    |> fun state -> mov_r_m C state memory
+    { defaultCpu with H = 0xDEuy; L = 0xADuy }
+    |> fun cpu -> mov_r_m C cpu memory
     |> get8 C
     |> should equal 0xBE
 
 [<Test>]
 let ``MOV M, C while HL contains address 0xDEAD and C contains 0xBE should set memory address 0xDEAD to 0xBE`` () =
     let changes =
-        { defaultState with H = 0xDEuy; L = 0xADuy; C = 0xBEuy; }
+        { defaultCpu with H = 0xDEuy; L = 0xADuy; C = 0xBEuy; }
         |> mov_m_r C 
         |> fun (_, changes) -> changes
         
@@ -213,9 +213,9 @@ let ``POP B while SP points to value 0xFF and SP+1 points to value 0xAA should s
     Array.set memory 0xBEEF 0xFFuy
     Array.set memory 0xBEF0 0xAAuy
 
-    { defaultState with SP = { High = 0xBEuy; Low = 0xEFuy }}
-    |> fun state -> pop BC state memory
-    |> fun state -> get16 BC state
+    { defaultCpu with SP = { High = 0xBEuy; Low = 0xEFuy }}
+    |> fun cpu -> pop BC cpu memory
+    |> fun cpu -> get16 BC cpu
     |> fun v -> should equal 0xAAFF (v.Value)
 
 [<Test>]
@@ -223,16 +223,16 @@ let ``POP B while SP equals 0xBEEF should set SP to 0xBEF1`` () =
     let memory = Array.zeroCreate<byte> 65535
     Array.set memory 0xBEEF 0xFFuy
 
-    { defaultState with SP = { High = 0xBEuy; Low = 0xEFuy }}
-    |> fun state -> pop BC state memory
-    |> fun state -> get16 SP state
+    { defaultCpu with SP = { High = 0xBEuy; Low = 0xEFuy }}
+    |> fun cpu -> pop BC cpu memory
+    |> fun cpu -> get16 SP cpu
     |> fun addr -> should equal 0xBEF1 addr.Value
 
 // PUSH
 [<Test>]
 let ``PUSH B while B contains 0xBE and C contains 0xEF should set SP-2 to 0xEF and SP-1 to 0xBE`` () =
     let (_, changes) =
-        { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy }; B = 0xBEuy; C = 0xEFuy }
+        { defaultCpu with SP = { High = 0xFFuy; Low = 0xFFuy }; B = 0xBEuy; C = 0xEFuy }
         |> push BC
 
     changes.Length
@@ -256,9 +256,9 @@ let ``PUSH B while B contains 0xBE and C contains 0xEF should set SP-2 to 0xEF a
     
 [<Test>]
 let ``PUSH B while B should set SP tp SP-2`` () =
-    { defaultState with SP = { High = 0xFFuy; Low = 0xFFuy }; B = 0xBEuy; C = 0xEFuy }
+    { defaultCpu with SP = { High = 0xFFuy; Low = 0xFFuy }; B = 0xBEuy; C = 0xEFuy }
     |> push BC
-    |> fun (state, _) -> should equal 0xFFFD (state.SP.Value)
+    |> fun (cpu, _) -> should equal 0xFFFD (cpu.SP.Value)
 
 [<Test>]
 let ``XTHL while SP points to 0xDEAD and HL contains 0xBEEF should set SP to 0xBEEF and HL to 0xDEAD`` () =
@@ -266,17 +266,54 @@ let ``XTHL while SP points to 0xDEAD and HL contains 0xBEEF should set SP to 0xB
     Array.set memory 0 0xADuy
     Array.set memory 1 0xDEuy
 
-    { defaultState with SP = { High = 0x0uy; Low = 0x0uy; }; H = 0xBEuy; L = 0xEFuy; }
-    |> fun state -> xthl state memory
-    |> fun (state, _) -> should equal 0xDEAD (get16 HL state).Value
+    { defaultCpu with SP = { High = 0x0uy; Low = 0x0uy; }; H = 0xBEuy; L = 0xEFuy; }
+    |> fun cpu -> xthl cpu memory
+    |> fun (cpu, _) -> should equal 0xDEAD (get16 HL cpu).Value
 
 [<Test>]
 let ``XCHG while HL contains 0xDEAD and DE contains 0xBEEF should set DE to 0xDEAD and HL to 0xBEEF`` () =
-    let state =
-        defaultState
+    let cpu =
+        defaultCpu
         |> set16 HL { High = 0xDEuy; Low = 0xADuy }
         |> set16 DE { High = 0xBEuy; Low = 0xEFuy }
         |> xchg
 
-    (get16 HL state).Value |> should equal 0xBEEF 
-    (get16 DE state).Value |> should equal 0xDEAD
+    (get16 HL cpu).Value |> should equal 0xBEEF 
+    (get16 DE cpu).Value |> should equal 0xDEAD
+
+[<Test>]
+let ``POP PSW while SP points to 0xBEEF should set A to 0xBE and FLAGS to 0xEF`` () =
+    let memory = Array.zeroCreate<byte> 65535
+    Array.set memory 0 0xEFuy
+    Array.set memory 1 0xBEuy
+
+    let cpu = 
+        pop_psw defaultCpu memory
+
+    cpu.A |> should equal 0xBE
+    cpu.FLAGS |> should equal 0xEF
+
+[<Test>]
+let ``PUSH PSW while A is set to 0xBE and FLAGS is set to 0xEF should push 0xBEEF to stack`` () =
+    let (_, changes) =
+        { defaultCpu with A = 0xBEuy; FLAGS = 0xEFuy; SP = { High = 0x00uy; Low = 0x10uy } }
+        |> push_psw
+
+    changes.Length
+    |> should equal 2
+
+    changes.Item 0
+    |> fst
+    |> should equal { High = 0x00uy; Low = 0x0Euy; }
+
+    changes.Item 0
+    |> snd
+    |> should equal 0xEFuy;
+
+    changes.Item 1
+    |> fst
+    |> should equal { High = 0x00uy; Low = 0x0Fuy; }
+
+    changes.Item 1
+    |> snd
+    |> should equal 0xBEuy;

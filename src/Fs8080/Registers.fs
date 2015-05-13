@@ -2,134 +2,106 @@
 
 open Fs8080.Types
 
-// List of 8bit registers
-type Register8 =
-    | A
-    | B
-    | C
-    | D
-    | E
-    | H
-    | L
-    | FLAGS
-
-// List of 16bit registers
-type Register16 =
-    | AF
-    | BC
-    | DE
-    | HL
-    | SP
-    | PC
-
-// Bitmasks used for setting/getting bits on FLAGS register
-type FlagMask = 
-    static member S = 0x80uy
-    static member Z = 0x40uy
-    static member A = 0x10uy
-    static member P = 0x04uy
-    static member C = 0x01uy
-
 // Gets the value of an 8bit register
-let get8 register state = 
+let get8 register cpu = 
     match register with
-        | A -> state.A
-        | B -> state.B
-        | C -> state.C
-        | D -> state.D
-        | E -> state.E
-        | H -> state.H
-        | L -> state.L
-        | FLAGS -> state.FLAGS
+        | A -> cpu.A
+        | B -> cpu.B
+        | C -> cpu.C
+        | D -> cpu.D
+        | E -> cpu.E
+        | H -> cpu.H
+        | L -> cpu.L
+        | FLAGS -> cpu.FLAGS
 
 // Gets the value of a 16bit register
-let get16 register state = 
+let get16 register cpu = 
     match register with
-        | AF -> { High = state.A; Low = state.FLAGS }
-        | BC -> { High = state.B; Low = state.C }
-        | DE -> { High = state.D; Low = state.E }
-        | HL -> { High = state.H; Low = state.L }
-        | SP -> state.SP
-        | PC -> state.PC
+        | AF -> { High = cpu.A; Low = cpu.FLAGS }
+        | BC -> { High = cpu.B; Low = cpu.C }
+        | DE -> { High = cpu.D; Low = cpu.E }
+        | HL -> { High = cpu.H; Low = cpu.L }
+        | SP -> cpu.SP
+        | PC -> cpu.PC
 
 // Sets the value of an 8bit register
-let set8 register value state =
+let set8 register value cpu =
     match register with
-        | A -> { state with A = value }
-        | B -> { state with B = value }
-        | C -> { state with C = value }
-        | D -> { state with D = value }
-        | E -> { state with E = value }
-        | H -> { state with H = value }
-        | L -> { state with L = value }
-        | FLAGS -> { state with FLAGS = value }
+        | A -> { cpu with A = value }
+        | B -> { cpu with B = value }
+        | C -> { cpu with C = value }
+        | D -> { cpu with D = value }
+        | E -> { cpu with E = value }
+        | H -> { cpu with H = value }
+        | L -> { cpu with L = value }
+        | FLAGS -> { cpu with FLAGS = value }
 
 // Sets the value of a 16bit register
-let set16 register (value: DWord) state =
+let set16 register (value: DWord) cpu =
     match register with
-        | AF -> { state with A = value.High; FLAGS = value.Low; }
-        | BC -> { state with B = value.High; C = value.Low; }
-        | DE -> { state with D = value.High; E = value.Low; }
-        | HL -> { state with H = value.High; L = value.Low; }
-        | SP -> { state with SP = value; }
-        | PC -> { state with PC = value; }
+        | AF -> { cpu with A = value.High; FLAGS = value.Low; }
+        | BC -> { cpu with B = value.High; C = value.Low; }
+        | DE -> { cpu with D = value.High; E = value.Low; }
+        | HL -> { cpu with H = value.High; L = value.Low; }
+        | SP -> { cpu with SP = value; }
+        | PC -> { cpu with PC = value; }
 
 // Copy the value from one 8bit register to another
-let copy8 src dest state =
-    get8 src state
-    |> fun value -> set8 dest value state
+let copy8 src dest cpu =
+    get8 src cpu
+    |> fun value -> set8 dest value cpu
 
 // Increment PC register
-let incPC (amt: uint16) state = 
-    { state with PC = state.PC + amt }
+let incPC (amt: uint16) cpu = 
+    { cpu with PC = cpu.PC + amt }
 
 // Increment cycle counter
-let incWC amt state = 
-    { state with WC = state.WC + amt }
+let incWC amt cpu = 
+    { cpu with WC = cpu.WC + amt }
 
 // Set S flag based on value
-let flagS (value: byte) state =
+let flagS (value: byte) cpu =
     if (value &&& 0x80uy) > 0uy
-    then { state with FLAGS = state.FLAGS ||| FlagMask.S }
-    else { state with FLAGS = state.FLAGS &&& ~~~FlagMask.S }
+    then { cpu with FLAGS = cpu.FLAGS ||| FlagMask.S }
+    else { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.S }
 
 // Set Z flag based on value
-let flagZ (value: byte) state = 
+let flagZ (value: byte) cpu = 
     if value = 0uy 
-    then { state with FLAGS = state.FLAGS ||| FlagMask.Z; }
-    else { state with FLAGS = state.FLAGS &&& ~~~FlagMask.Z; }
+    then { cpu with FLAGS = cpu.FLAGS ||| FlagMask.Z; }
+    else { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.Z; }
 
 // Set P flag based on value
-let flagP (value: byte) state =
+let flagP (value: byte) cpu =
     let cnt = 
         [0..7]
         |> List.fold (fun acc idx -> acc + (value >>> idx) &&& 0x1uy) 0uy
 
     if cnt % 2uy = 0uy
-    then { state with FLAGS = state.FLAGS ||| FlagMask.P; }
-    else { state with FLAGS = state.FLAGS &&& ~~~FlagMask.P; }
+    then { cpu with FLAGS = cpu.FLAGS ||| FlagMask.P; }
+    else { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.P; }
 
 // Set A flag based on value
-let flagA (value: byte) state =
+let flagA (value: byte) cpu =
     if (value &&& 0x0Fuy) = 0uy
-    then { state with FLAGS = state.FLAGS ||| FlagMask.A; }
-    else { state with FLAGS = state.FLAGS &&& ~~~FlagMask.A; }
+    then { cpu with FLAGS = cpu.FLAGS ||| FlagMask.A; }
+    else { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.A; }
 
 // Set C flag based on addition result (flag is set is addition overflows)
-let flagCForAdd (previousValue: byte) (value: byte) state =
+let flagCForAdd (previousValue: byte) (value: byte) cpu =
     if (value < previousValue)
-    then { state with FLAGS = state.FLAGS ||| FlagMask.C; }
-    else { state with FLAGS = state.FLAGS &&& ~~~FlagMask.C; }
+    then { cpu with FLAGS = cpu.FLAGS ||| FlagMask.C; }
+    else { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.C; }
 
 // Set C flag based on subtraction result (flag is set is addition overflows)
-let flagCForSub (previousValue: byte) (value: byte) state =
+let flagCForSub (previousValue: byte) (value: byte) cpu =
     if (value > previousValue)
-    then { state with FLAGS = state.FLAGS ||| FlagMask.C; }
-    else { state with FLAGS = state.FLAGS &&& ~~~FlagMask.C; }
+    then { cpu with FLAGS = cpu.FLAGS ||| FlagMask.C; }
+    else { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.C; }
 
 // Set S, Z, A, and P flags based on value
-let flagSZAP (value: byte) state =
-    flagS value state
+let flagSZAP (value: byte) cpu =
+    flagS value cpu
     |> flagZ value
     |> flagP value
     |> flagA value
