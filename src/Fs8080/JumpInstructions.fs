@@ -75,8 +75,8 @@ let call address cpu memory =
     let nextpc = cpu.PC + 3us
 
     let memchanges =
-        store (cpu.SP - 1us).Value nextpc.Low memory
-        |> store (cpu.SP - 2us).Value nextpc.High
+        store (cpu.SP - 1us).Value nextpc.High memory
+        |> store (cpu.SP - 2us).Value nextpc.Low
 
     { cpu with PC = address; SP = cpu.SP - 2us }
     |> incWC 17

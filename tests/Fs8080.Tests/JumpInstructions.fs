@@ -68,9 +68,9 @@ let ``CNZ 0xBEEF while Z flag is not set should push PC+3 to the stack then set 
 
     cpu.SP.Value |> should equal 0xFFFD
 
-    memory.Item 0xFFFEus |> should equal 0xAD
+    memory.Item 0xFFFEus |> should equal 0xAA
 
-    memory.Item 0xFFFDus |> should equal 0xAA
+    memory.Item 0xFFFDus |> should equal 0xAD
 
 [<Test>]
 let ``CNZ 0xBEEF while Z flag is set should only increment PC`` () =
@@ -132,9 +132,9 @@ let ``CZ 0xBEEF while Z flag is set should push PC+3 to the stack then set PC to
 
     cpu.SP.Value |> should equal 0xFFFD
 
-    memory.Item 0xFFFEus |> should equal 0xAD
+    memory.Item 0xFFFEus |> should equal 0xAA
 
-    memory.Item 0xFFFDus |> should equal 0xAA
+    memory.Item 0xFFFDus |> should equal 0xAD
 
 [<Test>]
 let ``CZ 0xBEEF while Z flag is not set should only increment PC`` () =
@@ -157,9 +157,9 @@ let ``CALL 0xBEEF should push PC+3 to the stack then set PC to 0xBEEF`` () =
 
     cpu.SP.Value |> should equal 0xFFFD
 
-    memory.Item 0xFFFEus |> should equal 0xAD
+    memory.Item 0xFFFEus |> should equal 0xAA
 
-    memory.Item 0xFFFDus |> should equal 0xAA
+    memory.Item 0xFFFDus |> should equal 0xAD
 
 // RNC
 [<Test>]
@@ -200,9 +200,9 @@ let ``CNC 0xBEEF while C flag is not set should push PC+3 to the stack then set 
 
     cpu.SP.Value |> should equal 0xFFFD
 
-    memory.Item 0xFFFEus |> should equal 0xAD
+    memory.Item 0xFFFEus |> should equal 0xAA
 
-    memory.Item 0xFFFDus |> should equal 0xAA
+    memory.Item 0xFFFDus |> should equal 0xAD
 
 [<Test>]
 let ``CNC 0xBEEF while C flag is set should only increment PC`` () =
@@ -245,9 +245,9 @@ let ``CC 0xBEEF while C flag is set should push PC+3 to the stack then set PC to
 
     cpu.SP.Value |> should equal 0xFFFD
 
-    memory.Item 0xFFFEus |> should equal 0xAD
+    memory.Item 0xFFFEus |> should equal 0xAA
 
-    memory.Item 0xFFFDus |> should equal 0xAA
+    memory.Item 0xFFFDus |> should equal 0xAD
 
 [<Test>]
 let ``CC 0xBEEF while C flag is set should only increment PC`` () =
@@ -298,9 +298,9 @@ let ``CPO 0xBEEF while P flag is not set should push PC+3 to the stack then set 
 
     cpu.SP.Value |> should equal 0xFFFD
 
-    memory.Item 0xFFFEus |> should equal 0xAD
+    memory.Item 0xFFFEus |> should equal 0xAA
 
-    memory.Item 0xFFFDus |> should equal 0xAA
+    memory.Item 0xFFFDus |> should equal 0xAD
 
 [<Test>]
 let ``CPO 0xBEEF while P flag is set should only increment PC`` () =
@@ -351,9 +351,9 @@ let ``CPE 0xBEEF while P flag is set should push PC+3 to the stack then set PC t
 
     cpu.SP.Value |> should equal 0xFFFD
 
-    memory.Item 0xFFFEus |> should equal 0xAD
+    memory.Item 0xFFFEus |> should equal 0xAA
 
-    memory.Item 0xFFFDus |> should equal 0xAA
+    memory.Item 0xFFFDus |> should equal 0xAD
 
 [<Test>]
 let ``CPE 0xBEEF while P flag is not set should only increment PC`` () =
@@ -404,9 +404,9 @@ let ``CP 0xBEEF while S flag is not set should push PC+3 to the stack then set P
 
     cpu.SP.Value |> should equal 0xFFFD
 
-    memory.Item 0xFFFEus |> should equal 0xAD
+    memory.Item 0xFFFEus |> should equal 0xAA
 
-    memory.Item 0xFFFDus |> should equal 0xAA
+    memory.Item 0xFFFDus |> should equal 0xAD
 
 [<Test>]
 let ``CP 0xBEEF while S flag is set should only increment PC`` () =
@@ -457,9 +457,9 @@ let ``CM 0xBEEF while S flag is set should push PC+3 to the stack then set PC to
 
     cpu.SP.Value |> should equal 0xFFFD
 
-    memory.Item 0xFFFEus |> should equal 0xAD
+    memory.Item 0xFFFEus |> should equal 0xAA
 
-    memory.Item 0xFFFDus |> should equal 0xAA
+    memory.Item 0xFFFDus |> should equal 0xAD
 
 [<Test>]
 let ``CM 0xBEEF while S flag is not set should only increment PC`` () =
