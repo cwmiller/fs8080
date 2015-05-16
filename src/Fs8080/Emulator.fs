@@ -8,9 +8,7 @@ open Fs8080.MoveInstructions
 open Fs8080.LogicalInstructions
 open Fs8080.JumpInstructions
 
-exception UnknownInstruction of byte
-
-type Emulator(memory: byte[]) =
+type Emulator() =
     let mutable stopping = false
 
     let preExecutionEvent = new Event<_>()
@@ -23,15 +21,15 @@ type Emulator(memory: byte[]) =
     member this.PostExecutionEvent = postExecutionEvent.Publish
 
     // Determines an instruction from its byte value
-    member internal this.Decode cpu =
-        let opcode = fetch cpu.PC memory
+    member internal this.Decode cpu memory =
+        let opcode = fetch cpu.PC.Value memory
 
         let ib = 
-            fetch (cpu.PC+1us) memory
+            fetch (cpu.PC+1us).Value memory
 
         let iw = 
-            let high = fetch (cpu.PC + 2us) memory
-            let low = fetch (cpu.PC + 1us) memory
+            let high = fetch (cpu.PC + 2us).Value memory
+            let low = fetch (cpu.PC + 1us).Value memory
             { High = high; Low = low }
 
         match opcode with
@@ -296,96 +294,96 @@ type Emulator(memory: byte[]) =
 
     // Carries out the given instruction
     // Returns the post-execution state along with a list of changes to perform on memory
-    member internal this.Execute instruction cpu =
+    member internal this.Execute instruction cpu (memory:Map<uint16,byte>) =
         match instruction with
-            | NOP                   -> nop cpu, []
-            | LXI(reg, value)       -> lxi reg value cpu, []
-            | STAX(reg)             -> stax reg cpu
-            | INX(reg)              -> inx reg cpu, []
-            | INR(reg)              -> inr reg cpu, []
-            | DCR(reg)              -> dcr reg cpu, []
-            | MVI(reg, value)       -> mvi reg value cpu, []
-            | RLC                   -> rlc cpu, []
-            | DAD(reg)              -> dad reg cpu, []
-            | LDAX(reg)             -> ldax reg cpu memory, []
-            | DCX(reg)              -> dcx reg cpu, []
-            | RRC                   -> rrc cpu, []
-            | RAL                   -> ral cpu, []
-            | RAR                   -> rar cpu, []
-            | SHLD(address)         -> shld address cpu
-            | DAA                   -> daa cpu, []
-            | LHLD(address)         -> lhld address cpu memory, []
-            | CMA                   -> cma cpu, []
-            | STA(address)          -> sta address cpu
+            | NOP                   -> nop cpu, memory
+            | LXI(reg, value)       -> lxi reg value cpu, memory
+            | STAX(reg)             -> stax reg cpu memory
+            | INX(reg)              -> inx reg cpu, memory
+            | INR(reg)              -> inr reg cpu, memory
+            | DCR(reg)              -> dcr reg cpu, memory
+            | MVI(reg, value)       -> mvi reg value cpu, memory
+            | RLC                   -> rlc cpu, memory
+            | DAD(reg)              -> dad reg cpu, memory
+            | LDAX(reg)             -> ldax reg cpu memory, memory
+            | DCX(reg)              -> dcx reg cpu, memory
+            | RRC                   -> rrc cpu, memory
+            | RAL                   -> ral cpu, memory
+            | RAR                   -> rar cpu, memory
+            | SHLD(address)         -> shld address cpu memory
+            | DAA                   -> daa cpu, memory
+            | LHLD(address)         -> lhld address cpu memory, memory
+            | CMA                   -> cma cpu, memory
+            | STA(address)          -> sta address cpu memory
             | INR_M                 -> inr_m cpu memory
             | DCR_M                 -> dcr_m cpu memory
-            | MVI_M(value)          -> mvi_m value cpu
-            | STC                   -> stc cpu, []
-            | LDA(address)          -> lda address cpu memory, []
-            | CMC                   -> cmc cpu, []
-            | MOV_R_R(dest, src)    -> mov_r_r dest src cpu, []
-            | MOV_R_M(reg)          -> mov_r_m reg cpu memory, []
-            | MOV_M_R(reg)          -> mov_m_r reg cpu
-            | HLT                   -> hlt cpu, []
-            | ADD(reg)              -> add reg cpu, []
-            | ADD_M                 -> add_m cpu memory, []
-            | ADC(reg)              -> adc reg cpu, []
-            | ADC_M                 -> adc_m cpu memory, []
-            | SUB(reg)              -> sub reg cpu, []
-            | SUB_M                 -> sub_m cpu memory, []
-            | SBB(reg)              -> sbb reg cpu, []
-            | SBB_M                 -> sbb_m cpu memory, []
-            | ANA(reg)              -> ana reg cpu, []
-            | ANA_M                 -> ana_m cpu memory, []
-            | XRA(reg)              -> xra reg cpu, []
-            | XRA_M                 -> xra_m cpu memory, []
-            | ORA(reg)              -> ora reg cpu, []
-            | ORA_M                 -> ora_m cpu memory, []
-            | CMP(reg)              -> cmp reg cpu, []
-            | CMP_M                 -> cmp_m cpu memory, []
-            | RNZ                   -> rnz cpu memory, []
-            | POP(reg)              -> pop reg cpu memory, []
-            | JNZ(address)          -> jnz address cpu, []
-            | JMP(address)          -> jmp address cpu, []
-            | CNZ(address)          -> cnz address cpu
-            | PUSH(reg)             -> push reg cpu
-            | ADI(byte)             -> adi byte cpu, []
-            | RZ                    -> rz cpu memory, []
-            | RET                   -> ret cpu memory, []
-            | JZ(address)           -> jz address cpu, []
-            | CZ(address)           -> cz address cpu
-            | CALL(address)         -> call address cpu 
-            | ACI(byte)             -> aci byte cpu, []
-            | RNC                   -> rnc cpu memory, []
-            | JNC(address)          -> jnc address cpu, []
-            | CNC(address)          -> cnc address cpu
-            | SUI(byte)             -> sui byte cpu, [] 
-            | RC                    -> rc cpu memory, []
-            | JC(address)           -> jc address cpu, []
-            | CC(address)           -> cc address cpu
-            | SBI(byte)             -> sbi byte cpu, []
-            | RPO                   -> rpo cpu memory, []
-            | JPO(address)          -> jpo address cpu, []
+            | MVI_M(value)          -> mvi_m value cpu memory
+            | STC                   -> stc cpu, memory
+            | LDA(address)          -> lda address cpu memory, memory
+            | CMC                   -> cmc cpu, memory
+            | MOV_R_R(dest, src)    -> mov_r_r dest src cpu, memory
+            | MOV_R_M(reg)          -> mov_r_m reg cpu memory, memory
+            | MOV_M_R(reg)          -> mov_m_r reg cpu memory
+            | HLT                   -> hlt cpu, memory
+            | ADD(reg)              -> add reg cpu, memory
+            | ADD_M                 -> add_m cpu memory, memory
+            | ADC(reg)              -> adc reg cpu, memory
+            | ADC_M                 -> adc_m cpu memory, memory
+            | SUB(reg)              -> sub reg cpu, memory
+            | SUB_M                 -> sub_m cpu memory, memory
+            | SBB(reg)              -> sbb reg cpu, memory
+            | SBB_M                 -> sbb_m cpu memory, memory
+            | ANA(reg)              -> ana reg cpu, memory
+            | ANA_M                 -> ana_m cpu memory, memory
+            | XRA(reg)              -> xra reg cpu, memory
+            | XRA_M                 -> xra_m cpu memory, memory
+            | ORA(reg)              -> ora reg cpu, memory
+            | ORA_M                 -> ora_m cpu memory, memory
+            | CMP(reg)              -> cmp reg cpu, memory
+            | CMP_M                 -> cmp_m cpu memory, memory
+            | RNZ                   -> rnz cpu memory, memory
+            | POP(reg)              -> pop reg cpu memory, memory
+            | JNZ(address)          -> jnz address cpu, memory
+            | JMP(address)          -> jmp address cpu, memory
+            | CNZ(address)          -> cnz address cpu memory
+            | PUSH(reg)             -> push reg cpu memory
+            | ADI(byte)             -> adi byte cpu, memory
+            | RZ                    -> rz cpu memory, memory
+            | RET                   -> ret cpu memory, memory
+            | JZ(address)           -> jz address cpu, memory
+            | CZ(address)           -> cz address cpu memory
+            | CALL(address)         -> call address cpu memory
+            | ACI(byte)             -> aci byte cpu, memory
+            | RNC                   -> rnc cpu memory, memory
+            | JNC(address)          -> jnc address cpu, memory
+            | CNC(address)          -> cnc address cpu memory
+            | SUI(byte)             -> sui byte cpu, memory 
+            | RC                    -> rc cpu memory, memory
+            | JC(address)           -> jc address cpu, memory
+            | CC(address)           -> cc address cpu memory
+            | SBI(byte)             -> sbi byte cpu, memory
+            | RPO                   -> rpo cpu memory, memory
+            | JPO(address)          -> jpo address cpu, memory
             | XTHL                  -> xthl cpu memory
-            | CPO(address)          -> cpo address cpu
-            | ANI(byte)             -> ani byte cpu, []
-            | RPE                   -> rpe cpu memory, []
-            | JPE(address)          -> jpe address cpu, []
-            | XCHG                  -> xchg cpu, []
-            | CPE(address)          -> cpe address cpu
-            | XRI(byte)             -> xri byte cpu, []
-            | RP                    -> rp cpu memory, []
-            | POP_PSW               -> pop_psw cpu memory, []
-            | JP(address)           -> jp address cpu, []
-            | CP(address)           -> cp address cpu
-            | PUSH_PSW              -> push_psw cpu
-            | ORI(byte)             -> ori byte cpu, []
-            | RM                    -> rm cpu memory, []
-            | JM(address)           -> jm address cpu, []
-            | CM(address)           -> cm address cpu
-            | CPI(byte)             -> cpi byte cpu, []
+            | CPO(address)          -> cpo address cpu memory
+            | ANI(byte)             -> ani byte cpu, memory
+            | RPE                   -> rpe cpu memory, memory
+            | JPE(address)          -> jpe address cpu, memory
+            | XCHG                  -> xchg cpu, memory
+            | CPE(address)          -> cpe address cpu memory
+            | XRI(byte)             -> xri byte cpu, memory
+            | RP                    -> rp cpu memory, memory
+            | POP_PSW               -> pop_psw cpu memory, memory
+            | JP(address)           -> jp address cpu, memory
+            | CP(address)           -> cp address cpu memory
+            | PUSH_PSW              -> push_psw cpu memory
+            | ORI(byte)             -> ori byte cpu, memory
+            | RM                    -> rm cpu memory, memory
+            | JM(address)           -> jm address cpu, memory
+            | CM(address)           -> cm address cpu memory
+            | CPI(byte)             -> cpi byte cpu, memory
 
-    member this.Run (pc: uint16) =
+    member this.Run (memory:Map<uint16,byte>) (pc: uint16) =
         let cpu = {
             A = 0uy;
             B = 0uy;
@@ -402,27 +400,26 @@ type Emulator(memory: byte[]) =
             State = State.Running;
         }
 
-        let rec cycle cpu =
+        let rec cycle cpu memory =
             let cpu = 
                 if stopping then { cpu with State = State.Stopped }
                 else cpu
 
             match cpu.State with
             | State.Running ->
-                this.Decode cpu
+                this.Decode cpu memory
                 |> fun(instruction) -> 
-                    preExecutionEvent.Trigger(instruction, cpu)
-                    this.Execute instruction cpu
-                |> fun (cpu, changes) ->
-                    changes |> List.iter (fun (addr, value) -> store addr value memory)
+                    preExecutionEvent.Trigger(instruction, cpu, memory)
 
-                    postExecutionEvent.Trigger(cpu)
+                    this.Execute instruction cpu memory
+                |> fun (cpu, memory) ->
+                    postExecutionEvent.Trigger(cpu, memory)
 
-                    cycle cpu
-            | State.Halted -> cycle cpu
-            | State.Stopped -> cpu
+                    cycle cpu memory
+            | State.Halted -> cycle cpu memory
+            | State.Stopped -> (cpu, memory)
 
-        cycle cpu
+        cycle cpu memory
 
     member this.Stop =
         stopping <- true

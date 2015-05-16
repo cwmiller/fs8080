@@ -35,5 +35,5 @@ let ``NOP should only affect PC and WC states`` () =
 let ``HLT should set State to Halted`` () =
     defaultCpu
     |> hlt
-    |> fun cpu -> cpu.State
+    |> fun cpu -> cpu.State 
     |> should equal State.Halted

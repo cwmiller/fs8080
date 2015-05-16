@@ -124,23 +124,23 @@ let cma cpu =
 // Increment value in memory pointed to by HL 
 let inr_m cpu memory =
     let address = (get16 HL cpu)
-    let value = (fetch address memory) + 1uy
+    let value = (fetch address.Value memory) + 1uy
             
     flagSZAP value cpu
     |> incPC 1us
     |> incWC 10
-    |> fun cpu -> (cpu, [(address, value)])
+    |> fun cpu -> cpu, (store address.Value value memory)
 
 
 // Decrement value in memory pointed to by HL 
 let dcr_m cpu memory =
     let address = (get16 HL cpu)
-    let value = (fetch address memory) - 1uy
+    let value = (fetch address.Value memory) - 1uy
             
     flagSZAP value cpu
     |> incPC 1us
     |> incWC 10
-    |> fun cpu -> (cpu, [(address, value)])
+    |> fun cpu -> cpu, (store address.Value value memory)
 
 // Enables the C flag
 let stc cpu =
@@ -167,7 +167,7 @@ let add register cpu =
 
 // Increment A by value in address in HL
 let add_m cpu memory =
-    let value = fetch (get16 HL cpu) memory
+    let value = fetch (get16 HL cpu).Value memory
     let existing = get8 A cpu
     let sum = existing + value
 
@@ -190,7 +190,7 @@ let adc register cpu =
 
 // Increment A by value in address in HL and Carry
 let adc_m cpu memory =
-    let value = fetch (get16 HL cpu) memory
+    let value = fetch (get16 HL cpu).Value memory
     let existing = get8 A cpu
     let sum = existing + value + (cpu.FLAGS &&& FlagMask.C)
 
@@ -217,7 +217,7 @@ let sub_m cpu memory =
 
     let diff =
         get16 HL cpu
-        |> fun addr -> fetch addr memory
+        |> fun addr -> fetch addr.Value memory
         |> (-) existing
 
     set8 A diff cpu
@@ -243,7 +243,7 @@ let sbb_m cpu memory =
 
     let diff =
         get16 HL cpu
-        |> fun addr -> fetch addr memory
+        |> fun addr -> fetch addr.Value memory
         |> fun value -> existing - (value + (cpu.FLAGS &&& FlagMask.C))
 
     set8 A diff cpu
@@ -268,7 +268,7 @@ let ana register cpu =
 let ana_m cpu memory =
     let value =
         get16 HL cpu
-        |> fun address -> fetch address memory
+        |> fun address -> fetch address.Value memory
         |> (&&&) cpu.A
 
     set8 A value cpu
@@ -293,7 +293,7 @@ let xra register cpu =
 let xra_m cpu memory =
     let value =
         get16 HL cpu
-        |> fun address -> fetch address memory
+        |> fun address -> fetch address.Value memory
         |> (^^^) cpu.A
 
     set8 A value cpu
@@ -318,7 +318,7 @@ let ora register cpu =
 let ora_m cpu memory =
     let value =
         get16 HL cpu
-        |> fun address -> fetch address memory
+        |> fun address -> fetch address.Value memory
         |> (|||) cpu.A
 
     set8 A value cpu
@@ -352,7 +352,7 @@ let cmp_m cpu memory =
     // All this needs to do is set FLAGS based on the difference
     let diff = 
         get16 HL cpu
-        |> fun address -> fetch address memory
+        |> fun address -> fetch address.Value memory
         |> fun amount -> cpu.A - amount
     
     flagSZAP diff cpu

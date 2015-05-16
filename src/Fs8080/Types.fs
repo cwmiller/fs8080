@@ -186,3 +186,5 @@ type Instruction =
     | JM of DWord
     | CM of DWord
     | CPI of byte
+
+exception UnknownInstruction of byte
