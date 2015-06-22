@@ -8,25 +8,64 @@ open Fs8080.MoveInstructions
 open Fs8080.LogicalInstructions
 open Fs8080.JumpInstructions
 
+open System.Diagnostics
+
 type Emulator() =
+    let defaultCpu = {
+        A = 0uy;
+        B = 0uy;
+        C = 0uy;
+        D = 0uy;
+        E = 0uy;
+        H = 0uy;
+        L = 0uy;
+        FLAGS = 0uy;
+        SP = { High = 0uy; Low = 0uy; };
+        PC = { High = 0uy; Low = 0uy; };
+        INTE = true;
+        State = State.Running;
+    }
+
     let mutable stopping = false
 
-    let preExecutionEvent = new Event<_>()
+    let mutable currentCpu = defaultCpu
+
+    let mutable interruptRequests = List.empty<Instruction>
+
+    let watch = new Stopwatch()
+
+    let frequencyNano = (float)(Stopwatch.Frequency / 1000L)
+
+    let cycleEvent = new Event<_>()
+
+    let executionEvent = new Event<_>()
+
     let postExecutionEvent = new Event<_>()
 
+    // Event that fires every CPU cycle
     [<CLIEvent>]
-    member this.PreExecutionEvent = preExecutionEvent.Publish
+    member this.OnCycle = cycleEvent.Publish
 
+    // Event that fires prior to instruction being executed
     [<CLIEvent>]
-    member this.PostExecutionEvent = postExecutionEvent.Publish
+    member this.OnExecution = executionEvent.Publish
 
-    // Determines an instruction from its byte value
-    member internal this.Decode cpu memory =
+    // Event that fires following an instruction being executed
+    [<CLIEvent>]
+    member this.AfterExecution = postExecutionEvent.Publish
+
+    // CPU clock speed
+    member this.Hz = 2000000.0
+
+    // Determines the next instruction in memory
+    member internal this.FetchAndDecode (cpu, memory) =
         let opcode = fetch cpu.PC.Value memory
 
+        // Gets the immediate bye following the instruction
         let ib = 
             fetch (cpu.PC+1us).Value memory
 
+        // Gets the immediate word following the instruction
         let iw = 
             let high = fetch (cpu.PC + 2us).Value memory
             let low = fetch (cpu.PC + 1us).Value memory
@@ -232,7 +271,7 @@ type Emulator() =
             | 0xC4uy -> Instruction.CNZ(iw)         // CALL address if Z flag is not set
             | 0xC5uy -> Instruction.PUSH(BC)        // PUSH BC to stack
             | 0xC6uy -> Instruction.ADI(ib)         // A = A + byte
-
+            | 0xC7uy -> Instruction.RST(0uy)        // RST 0
             | 0xC8uy -> Instruction.RZ              // RET if Z flag is set
             | 0xC9uy -> Instruction.RET             // Return from call
             | 0xCAuy -> Instruction.JZ(iw)          // Jump to address if Z flag is set
@@ -240,8 +279,7 @@ type Emulator() =
             | 0xCCuy -> Instruction.CZ(iw)          // CALL address if Z flag is set
             | 0xCDuy -> Instruction.CALL(iw)        // Push PC to stack and jump to address
             | 0xCEuy -> Instruction.ACI(ib)         // A = A + byte with Carry
-
-
+            | 0xCFuy -> Instruction.RST(1uy)        // RST 1
             | 0xD0uy -> Instruction.RNC             // RET if C flag not set
             | 0xD1uy -> Instruction.POP(DE)         // DE = POP stack
             | 0xD2uy -> Instruction.JNC(iw)         // Jump to address if C flag is not set
@@ -249,23 +287,22 @@ type Emulator() =
             | 0xD4uy -> Instruction.CNC(iw)         // CALL memory address if C flag is not set
             | 0xD5uy -> Instruction.PUSH(DE)        // PUSH DE to stack
             | 0xD6uy -> Instruction.SUI(ib)         // A = A - byte
-
+            | 0xD7uy -> Instruction.RST(2uy)        // RST 2
             | 0xD8uy -> Instruction.RC              // RET if C flag is set
             | 0xD9uy -> Instruction.RET             // Alternative for RET (do not use)
             | 0xDAuy -> Instruction.JC(iw)          // JUMP to address if C flag is set
             | 0xDCuy -> Instruction.CC(iw)          // CALL address if C flag is set
             | 0xDDuy -> Instruction.CALL(iw)        // Alternative for CALL (do not use)
             | 0xDEuy -> Instruction.SBI(ib)         // A = A - byte with Borrow
-
+            | 0xDFuy -> Instruction.RST(3uy)        // RST 3
             | 0xE0uy -> Instruction.RPO             // RET if Odd (Parity flag not set)
             | 0xE1uy -> Instruction.POP(HL)         // HL = POP stack
             | 0xE2uy -> Instruction.JPO(iw)         // JUMP to address if Odd (Parity flag not set)
             | 0xE3uy -> Instruction.XTHL            // Exchange Stack with HL
             | 0xE4uy -> Instruction.CPO(iw)         // CALL address if Odd (Parity flag not set)
-
             | 0xE5uy -> Instruction.PUSH(HL)        // PUSH HL to stack
             | 0xE6uy -> Instruction.ANI(ib)         // A = A AND byte
-
+            | 0xE7uy -> Instruction.RST(4uy)        // RST 4
             | 0xE8uy -> Instruction.RPE             // RET if Even (Parity flag set)
 
             | 0xEAuy -> Instruction.JPE(iw)         // JUMP to address if Even (Parity flag set)
@@ -273,153 +310,203 @@ type Emulator() =
             | 0xECuy -> Instruction.CPE(iw)         // CALL address if Even (Parity flag set)
             | 0xEDuy -> Instruction.CALL(iw)        // Alternative for CALL (do not use)
             | 0xEEuy -> Instruction.XRI(ib)         // A = A XOR byte
-
+            | 0xEFuy -> Instruction.RST(5uy)        // RST 5
             | 0xF0uy -> Instruction.RP              // RET if positive (S flag not set)
             | 0xF1uy -> Instruction.POP_PSW         // POP A and FLAGS from stack
-
             | 0xF2uy -> Instruction.JP(iw)          // JUMP to address if Positive (S flag not set)
-
+            | 0xF3uy -> Instruction.DI              // Disable interrupts
             | 0xF4uy -> Instruction.CP(iw)          // ALL if Positive (Sign flag not set)
             | 0xF5uy -> Instruction.PUSH_PSW        // PUSH A and FLAGS to stack
             | 0xF6uy -> Instruction.ORI(ib)         // A = X OR byte
-
+            | 0xF7uy -> Instruction.RST(6uy)        // RST 6
             | 0xF8uy -> Instruction.RM              // RET if minus (S flag set)
 
             | 0xFAuy -> Instruction.JM(iw)          // JUMP to address if minus (S flag set)
-
+            | 0xFBuy -> Instruction.EI              // Enable instructions
             | 0xFDuy -> Instruction.CALL(iw)        // Alternative for CALL (do not use)
             | 0xFEuy -> Instruction.CPI(ib)         // Compare byte to A
+            | 0xFFuy -> Instruction.RST(7uy)        // RST 7
 
             | _ -> raise (UnknownInstruction(opcode))
 
     // Carries out the given instruction
-    // Returns the post-execution state along with a list of changes to perform on memory
-    member internal this.Execute instruction cpu (memory:Map<uint16,byte>) =
-        match instruction with
-            | NOP                   -> nop cpu, memory
-            | LXI(reg, value)       -> lxi reg value cpu, memory
-            | STAX(reg)             -> stax reg cpu memory
-            | INX(reg)              -> inx reg cpu, memory
-            | INR(reg)              -> inr reg cpu, memory
-            | DCR(reg)              -> dcr reg cpu, memory
-            | MVI(reg, value)       -> mvi reg value cpu, memory
-            | RLC                   -> rlc cpu, memory
-            | DAD(reg)              -> dad reg cpu, memory
-            | LDAX(reg)             -> ldax reg cpu memory, memory
-            | DCX(reg)              -> dcx reg cpu, memory
-            | RRC                   -> rrc cpu, memory
-            | RAL                   -> ral cpu, memory
-            | RAR                   -> rar cpu, memory
-            | SHLD(address)         -> shld address cpu memory
-            | DAA                   -> daa cpu, memory
-            | LHLD(address)         -> lhld address cpu memory, memory
-            | CMA                   -> cma cpu, memory
-            | STA(address)          -> sta address cpu memory
-            | INR_M                 -> inr_m cpu memory
-            | DCR_M                 -> dcr_m cpu memory
-            | MVI_M(value)          -> mvi_m value cpu memory
-            | STC                   -> stc cpu, memory
-            | LDA(address)          -> lda address cpu memory, memory
-            | CMC                   -> cmc cpu, memory
-            | MOV_R_R(dest, src)    -> mov_r_r dest src cpu, memory
-            | MOV_R_M(reg)          -> mov_r_m reg cpu memory, memory
-            | MOV_M_R(reg)          -> mov_m_r reg cpu memory
-            | HLT                   -> hlt cpu, memory
-            | ADD(reg)              -> add reg cpu, memory
-            | ADD_M                 -> add_m cpu memory, memory
-            | ADC(reg)              -> adc reg cpu, memory
-            | ADC_M                 -> adc_m cpu memory, memory
-            | SUB(reg)              -> sub reg cpu, memory
-            | SUB_M                 -> sub_m cpu memory, memory
-            | SBB(reg)              -> sbb reg cpu, memory
-            | SBB_M                 -> sbb_m cpu memory, memory
-            | ANA(reg)              -> ana reg cpu, memory
-            | ANA_M                 -> ana_m cpu memory, memory
-            | XRA(reg)              -> xra reg cpu, memory
-            | XRA_M                 -> xra_m cpu memory, memory
-            | ORA(reg)              -> ora reg cpu, memory
-            | ORA_M                 -> ora_m cpu memory, memory
-            | CMP(reg)              -> cmp reg cpu, memory
-            | CMP_M                 -> cmp_m cpu memory, memory
-            | RNZ                   -> rnz cpu memory, memory
-            | POP(reg)              -> pop reg cpu memory, memory
-            | JNZ(address)          -> jnz address cpu, memory
-            | JMP(address)          -> jmp address cpu, memory
-            | CNZ(address)          -> cnz address cpu memory
-            | PUSH(reg)             -> push reg cpu memory
-            | ADI(byte)             -> adi byte cpu, memory
-            | RZ                    -> rz cpu memory, memory
-            | RET                   -> ret cpu memory, memory
-            | JZ(address)           -> jz address cpu, memory
-            | CZ(address)           -> cz address cpu memory
-            | CALL(address)         -> call address cpu memory
-            | ACI(byte)             -> aci byte cpu, memory
-            | RNC                   -> rnc cpu memory, memory
-            | JNC(address)          -> jnc address cpu, memory
-            | CNC(address)          -> cnc address cpu memory
-            | SUI(byte)             -> sui byte cpu, memory 
-            | RC                    -> rc cpu memory, memory
-            | JC(address)           -> jc address cpu, memory
-            | CC(address)           -> cc address cpu memory
-            | SBI(byte)             -> sbi byte cpu, memory
-            | RPO                   -> rpo cpu memory, memory
-            | JPO(address)          -> jpo address cpu, memory
-            | XTHL                  -> xthl cpu memory
-            | CPO(address)          -> cpo address cpu memory
-            | ANI(byte)             -> ani byte cpu, memory
-            | RPE                   -> rpe cpu memory, memory
-            | JPE(address)          -> jpe address cpu, memory
-            | XCHG                  -> xchg cpu, memory
-            | CPE(address)          -> cpe address cpu memory
-            | XRI(byte)             -> xri byte cpu, memory
-            | RP                    -> rp cpu memory, memory
-            | POP_PSW               -> pop_psw cpu memory, memory
-            | JP(address)           -> jp address cpu, memory
-            | CP(address)           -> cp address cpu memory
-            | PUSH_PSW              -> push_psw cpu memory
-            | ORI(byte)             -> ori byte cpu, memory
-            | RM                    -> rm cpu memory, memory
-            | JM(address)           -> jm address cpu, memory
-            | CM(address)           -> cm address cpu memory
-            | CPI(byte)             -> cpi byte cpu, memory
+    // Returns the post-execution state, memory, and number of cycles it took to complete the instruction
+    member internal this.Execute instruction (cpu, memory) =
+        let ex f =
+            f cpu
+            |> fun (cpu, cycles) -> (cpu, memory, cycles)
 
-    member this.Run (memory:Map<uint16,byte>) (pc: uint16) =
-        let cpu = {
-            A = 0uy;
-            B = 0uy;
-            C = 0uy;
-            D = 0uy;
-            E = 0uy;
-            H = 0uy;
-            L = 0uy;
-            FLAGS = 0uy;
-            SP = { High = 0uy; Low = 0uy; };
-            PC = { High = 0uy; Low = 0uy; } + pc;
-            WC = 0;
-            InterruptsEnabled = false;
-            State = State.Running;
-        }
+        let exm f =
+            f cpu memory
 
-        let rec cycle cpu memory =
-            let cpu = 
-                if stopping then { cpu with State = State.Stopped }
+        let exrm f =
+            f cpu memory
+            |> fun (cpu, cycles) -> (cpu, memory, cycles)
+
+        match cpu.State with
+        | Stopped -> None
+        | Halted -> Some (cpu, memory, 1)
+        | Running ->
+            executionEvent.Trigger(instruction, cpu, memory)
+
+            Some <| match instruction with
+                    | NOP -> ex nop
+                    | LXI(reg, value) -> ex (lxi reg value)
+                    | STAX(reg) -> exm (stax reg)
+                    | INX(reg) -> ex (inx reg)
+                    | INR(reg) -> ex (inr reg)
+                    | DCR(reg) -> ex (dcr reg)
+                    | MVI(reg, value) -> ex (mvi reg value)
+                    | RLC -> ex rlc
+                    | DAD(reg) -> ex (dad reg) 
+                    | LDAX(reg) -> exrm (ldax reg)
+                    | DCX(reg) -> ex (dcx reg)
+                    | RRC -> ex rrc
+                    | RAL -> ex ral
+                    | RAR -> ex rar
+                    | SHLD(address) -> exm (shld address) 
+                    | DAA -> ex daa
+                    | LHLD(address) -> exrm (lhld address) 
+                    | CMA -> ex cma
+                    | STA(address) -> exm (sta address) 
+                    | INR_M -> exm inr_m 
+                    | DCR_M -> exm dcr_m 
+                    | MVI_M(value) -> exm (mvi_m value) 
+                    | STC -> ex stc
+                    | LDA(address) -> exrm (lda address) 
+                    | CMC -> ex cmc
+                    | MOV_R_R(dest, src) -> ex (mov_r_r dest src)
+                    | MOV_R_M(reg) -> exrm (mov_r_m reg)
+                    | MOV_M_R(reg) -> exm (mov_m_r reg)
+                    | HLT -> ex hlt 
+                    | ADD(reg) -> ex (add reg)
+                    | ADD_M -> exrm add_m
+                    | ADC(reg) -> ex (adc reg)
+                    | ADC_M -> exrm adc_m
+                    | SUB(reg) -> ex (sub reg)
+                    | SUB_M -> exrm sub_m
+                    | SBB(reg) -> ex (sbb reg)
+                    | SBB_M -> exrm sbb_m
+                    | ANA(reg) -> ex (ana reg)
+                    | ANA_M -> exrm ana_m
+                    | XRA(reg) -> ex (xra reg)
+                    | XRA_M  -> exrm xra_m
+                    | ORA(reg) -> ex (ora reg)
+                    | ORA_M -> exrm ora_m
+                    | CMP(reg) -> ex (cmp reg)
+                    | CMP_M -> exrm cmp_m
+                    | RNZ -> exrm rnz
+                    | POP(reg) -> exrm (pop reg)
+                    | JNZ(address) -> ex (jnz address)
+                    | JMP(address) -> ex (jmp address)
+                    | CNZ(address) -> exm (cnz address)
+                    | PUSH(reg) -> exm (push reg)
+                    | ADI(byte) -> ex (adi byte)
+                    | RST(byte) -> exm (rst byte)
+                    | RZ -> exrm rz
+                    | RET -> exrm ret
+                    | JZ(address) -> ex (jz address)
+                    | CZ(address) -> exm (cz address)
+                    | CALL(address) -> exm (call address)
+                    | ACI(byte) -> ex (aci byte)
+                    | RNC -> exrm rnc
+                    | JNC(address) -> ex (jnc address)
+                    | CNC(address) -> exm (cnc address)
+                    | SUI(byte) -> ex (sui byte)
+                    | RC -> exrm rc
+                    | JC(address) -> ex (jc address)
+                    | CC(address) -> exm (cc address)
+                    | SBI(byte) -> ex (sbi byte)
+                    | RPO -> exrm rpo
+                    | JPO(address) -> ex (jpo address)
+                    | XTHL -> exm xthl
+                    | CPO(address) -> exm (cpo address)
+                    | ANI(byte) -> ex (ani byte)
+                    | RPE -> exrm rpe
+                    | JPE(address) -> ex (jpe address)
+                    | XCHG -> ex xchg
+                    | CPE(address) -> exm (cpe address)
+                    | XRI(byte) -> ex (xri byte)
+                    | RP -> exrm rp
+                    | POP_PSW -> exrm pop_psw
+                    | JP(address) -> ex (jp address)
+                    | DI -> ex di
+                    | CP(address) -> exm (cp address)
+                    | PUSH_PSW -> exm push_psw
+                    | ORI(byte) -> ex (ori byte)
+                    | RM -> exrm rm
+                    | JM(address) -> ex (jm address)
+                    | EI -> ex ei
+                    | CM(address) -> exm (cm address)
+                    | CPI(byte) -> ex (cpi byte)
+
+    // Get the next interrupt to be executed
+    member internal this.TryInterrupt =
+        match interruptRequests with
+                | head::tail -> 
+                    interruptRequests <- tail
+                    Some head
+                | [] -> None
+
+    // Wastes CPU time in attempt to match the emulated CPU's speed
+    member internal this.Wait cycles =
+        let emuNano = (float)watch.ElapsedTicks / frequencyNano
+        let cpuNano = (float)cycles / (this.Hz / 1000000.0)
+
+        if emuNano < cpuNano then 
+            let ticks = (int64)((cpuNano - emuNano) * frequencyNano)
+            while watch.ElapsedTicks < ticks do 0 |> ignore
+           
+    // Run the emulator
+    member this.Run (memory:Memory) (pc: uint16) =
+        let cpu = { defaultCpu with PC = { High = 0uy; Low = 0uy; } + pc; State = Running };
+
+        stopping <- false
+
+        let rec cycle instruction (cpu, memory) =
+            currentCpu <- 
+                if stopping 
+                then { cpu with State = Stopped; } 
                 else cpu
 
-            match cpu.State with
-            | State.Running ->
-                this.Decode cpu memory
-                |> fun(instruction) -> 
-                    preExecutionEvent.Trigger(instruction, cpu, memory)
+            cycleEvent.Trigger()
 
-                    this.Execute instruction cpu memory
-                |> fun (cpu, memory) ->
-                    postExecutionEvent.Trigger(cpu, memory)
+            watch.Reset()
+            watch.Start()
 
-                    cycle cpu memory
-            | State.Halted -> cycle cpu memory
-            | State.Stopped -> (cpu, memory)
+            let postExecute = this.Execute instruction (currentCpu, memory)
 
-        cycle cpu memory
+            match postExecute with
+            | None -> (cpu, memory)
+            | Some (cpu, memory, cycles) ->
+                this.Wait cycles
 
+                postExecutionEvent.Trigger(instruction, cpu, memory)
+
+                // Carry out an interrupt if one is available, else continue with the next instruction in memory
+                match this.TryInterrupt with
+                    | Some instruction -> 
+                        // If CPU is in Halted state, an interrupt knocks it back into Running. 
+                        // Also, disable interrupts when an interrupt occurs
+                        { cpu with INTE = false; }
+                        |> fun cpu -> if cpu.State = Halted then { cpu with State = Running } else cpu
+                        |> fun cpu -> cycle instruction (cpu, memory)
+                    | None -> 
+                        this.FetchAndDecode (cpu, memory)
+                        |> fun instruction -> cycle instruction (cpu, memory)
+                
+        // Start the cycle
+        this.FetchAndDecode (cpu, memory)
+        |> fun instruction -> cycle instruction (cpu, memory)
+        |> ignore
+            
+        watch.Stop()
+
+    // Causes an interrupt
+    member this.Interrupt instruction =
+        if currentCpu.INTE then
+            interruptRequests <- interruptRequests @ [instruction]
+
+    // Stops the emulator
     member this.Stop =
         stopping <- true

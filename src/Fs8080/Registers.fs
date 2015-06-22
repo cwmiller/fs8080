@@ -55,10 +55,6 @@ let copy8 src dest cpu =
 let incPC (amt: uint16) cpu = 
     { cpu with PC = cpu.PC + amt }
 
-// Increment cycle counter
-let incWC amt cpu = 
-    { cpu with WC = cpu.WC + amt }
-
 // Set S flag based on value
 let flagS (value: byte) cpu =
     if (value &&& 0x80uy) > 0uy

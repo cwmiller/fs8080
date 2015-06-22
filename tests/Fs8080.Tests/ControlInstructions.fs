@@ -17,8 +17,7 @@ let internal defaultCpu = {
     FLAGS = 0uy;
     SP = { High = 0uy; Low = 0uy; };
     PC = { High = 0uy; Low = 0uy; };
-    WC = 0;
-    InterruptsEnabled = false;
+    INTE = false;
     State = State.Running;
 }
 
@@ -27,7 +26,7 @@ let internal defaultCpu = {
 let ``NOP should only affect PC and WC states`` () =
     defaultCpu
     |> nop
-    |> fun cpu -> (cpu.A + cpu.B + cpu.C + cpu.D + cpu.E + cpu.FLAGS)
+    |> fun (cpu, _) -> (cpu.A + cpu.B + cpu.C + cpu.D + cpu.E + cpu.FLAGS)
     |> should equal 0
 
 // HLT
@@ -35,5 +34,21 @@ let ``NOP should only affect PC and WC states`` () =
 let ``HLT should set State to Halted`` () =
     defaultCpu
     |> hlt
-    |> fun cpu -> cpu.State 
+    |> fun (cpu, _) -> cpu.State 
     |> should equal State.Halted
+
+// DI
+[<Test>]
+let ``DI should disable interupts`` () =
+    { defaultCpu with INTE = true }
+    |> di
+    |> fun (cpu, _) -> cpu.INTE
+    |> should equal false
+
+// EI
+[<Test>]
+let enable () =
+    defaultCpu
+    |> di
+    |> fun (cpu, _) -> cpu.INTE
+    |> should equal true

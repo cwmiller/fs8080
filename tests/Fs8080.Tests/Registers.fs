@@ -17,8 +17,7 @@ let defaultCpu = {
     FLAGS = 0uy;
     SP = { High = 0uy; Low = 0uy; };
     PC = { High = 0uy; Low = 0uy; };
-    WC = 0;
-    InterruptsEnabled = false;
+    INTE = false;
     State = State.Running;
 }
 

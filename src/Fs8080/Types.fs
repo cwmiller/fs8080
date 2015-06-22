@@ -89,13 +89,10 @@ type Cpu = {
     FLAGS: byte;
 
     // Interrupts enabled or disabled
-    InterruptsEnabled: bool;
+    INTE: bool;
 
     // Running state
     State: State
-
-    // Work cycles
-    WC: int;
 }
 
 // List of supported instructions
@@ -152,6 +149,7 @@ type Instruction =
     | CNZ of DWord
     | PUSH of Register16
     | ADI of byte
+    | RST of byte
     | RZ
     | RET
     | JZ of DWord
@@ -179,12 +177,18 @@ type Instruction =
     | RP
     | POP_PSW
     | JP of DWord
+    | DI
     | CP of DWord
     | PUSH_PSW
     | ORI of byte
     | RM
     | JM of DWord
+    | EI
     | CM of DWord
     | CPI of byte
+
+type Memory = Map<uint16,byte>
+
+type System = Cpu * Memory
 
 exception UnknownInstruction of byte

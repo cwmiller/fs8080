@@ -13,11 +13,9 @@ let rnz cpu memory =
         }
 
         set16 PC pc cpu
-        |> set16 SP (cpu.SP + 2us)
-        |> incWC 11
+        |> set16 SP (cpu.SP + 2us), 11
     else
-        incPC 1us cpu
-        |> incWC 5
+        incPC 1us cpu, 5
 
 // Jump to address if Z flag is not set
 let jnz address cpu =
@@ -26,13 +24,12 @@ let jnz address cpu =
         then address
         else cpu.PC + 3us
 
-    set16 PC nextpc cpu
-    |> incWC 10
+    set16 PC nextpc cpu, 10
 
 // Jump to address
 let jmp address cpu =
     { cpu with PC = address }
-    |> incWC 10        
+    |> fun cpu -> cpu, 10        
 
 // RET if Z flag is set
 let rz cpu memory =
@@ -43,11 +40,9 @@ let rz cpu memory =
         }
 
         set16 PC pc cpu
-        |> set16 SP (cpu.SP + 2us)
-        |> incWC 15
+        |> set16 SP (cpu.SP + 2us), 15
     else
-        incPC 1us cpu
-        |> incWC 11
+        incPC 1us cpu, 11
 
 // POP PC off stack and jump to it
 let ret cpu memory =
@@ -57,8 +52,7 @@ let ret cpu memory =
     }
 
     set16 PC pc cpu
-    |> set16 SP (cpu.SP + 2us)
-    |> incWC 1
+    |> set16 SP (cpu.SP + 2us), 1
 
 // Jump to address if Z flag is set
 let jz address cpu =
@@ -67,20 +61,18 @@ let jz address cpu =
         then address
         else cpu.PC + 3us
 
-    set16 PC nextpc cpu
-    |> incWC 1
+    set16 PC nextpc cpu, 1
 
 // Push PC to stack and jump to address
 let call address cpu memory =
     let nextpc = cpu.PC + 3us
 
-    let memchanges =
+    let memory =
         store (cpu.SP - 1us).Value nextpc.High memory
         |> store (cpu.SP - 2us).Value nextpc.Low
 
     { cpu with PC = address; SP = cpu.SP - 2us }
-    |> incWC 17
-    |> fun cpu -> cpu, memchanges
+    |> fun cpu -> cpu, memory, 17
 
 // CALL if Z is not set
 let cnz address cpu memory =
@@ -89,8 +81,18 @@ let cnz address cpu memory =
         call address cpu memory
     else
         incPC 3us cpu
-        |> incWC 11
-        |> fun cpu -> cpu, memory
+        |> fun cpu -> cpu, memory, 11
+
+// RST
+let rst (num: byte) cpu memory =
+    let memory =
+        store (cpu.SP - 1us).Value cpu.PC.High memory
+        |> store (cpu.SP - 2us).Value cpu.PC.Low
+
+    let address = { Low = (num * 8uy); High = 0uy }
+
+    { cpu with PC = address; SP = cpu.SP - 2us }
+    |> fun cpu -> cpu, memory, 11
 
 // CALL if Z is set
 let cz address cpu memory =
@@ -99,8 +101,7 @@ let cz address cpu memory =
         call address cpu memory
     else
         incPC 3us cpu
-        |> incWC 11
-        |> fun cpu -> cpu, memory
+        |> fun cpu -> cpu, memory, 11
 
 // RET if C is not set
 let rnc cpu memory = 
@@ -111,11 +112,9 @@ let rnc cpu memory =
         }
 
         set16 PC pc cpu
-        |> set16 SP (cpu.SP + 2us)
-        |> incWC 11
+        |> set16 SP (cpu.SP + 2us), 11
     else
-        incPC 1us cpu
-        |> incWC 5
+        incPC 1us cpu, 5
 
 // Jump to address if C flag is not set
 let jnc address cpu =
@@ -125,8 +124,7 @@ let jnc address cpu =
         else
             cpu.PC + 3us
 
-    set16 PC pc cpu
-    |> incWC 10
+    set16 PC pc cpu, 10
 
 // CALL if C flag is not set
 let cnc address cpu memory =
@@ -135,8 +133,7 @@ let cnc address cpu memory =
         call address cpu memory
     else
         incPC 3us cpu
-        |> incWC 11
-        |> fun cpu -> cpu, memory
+        |> fun cpu -> cpu, memory, 11
 
 // RET if Carry flag set
 let rc cpu memory =
@@ -147,11 +144,9 @@ let rc cpu memory =
         }
 
         set16 PC pc cpu
-        |> set16 SP (cpu.SP + 2us)
-        |> incWC 11
+        |> set16 SP (cpu.SP + 2us), 11
     else
-        incPC 1us cpu
-        |> incWC 5
+        incPC 1us cpu, 5
 
 // Jump to address if C flag is set
 let jc address cpu =
@@ -161,8 +156,7 @@ let jc address cpu =
         else
             cpu.PC + 3us
 
-    set16 PC pc cpu
-    |> incWC 10
+    set16 PC pc cpu, 10
 
 // CALL if C flag is set
 let cc address cpu memory =
@@ -171,8 +165,7 @@ let cc address cpu memory =
         call address cpu memory
     else
         incPC 3us cpu
-        |> incWC 11
-        |> fun cpu -> cpu, memory
+        |> fun cpu -> cpu, memory, 11
 
 // RET if  Odd (Partity flag not set)
 let rpo cpu memory =
@@ -183,11 +176,9 @@ let rpo cpu memory =
         }
 
         set16 PC pc cpu
-        |> set16 SP (cpu.SP + 2us)
-        |> incWC 11
+        |> set16 SP (cpu.SP + 2us), 11
     else
-        incPC 1us cpu
-        |> incWC 5
+        incPC 1us cpu, 5
 
 // Jump to address if Odd (Parity flag not set)
 let jpo address cpu =
@@ -197,8 +188,7 @@ let jpo address cpu =
         else
             cpu.PC + 3us
 
-    set16 PC pc cpu
-    |> incWC 10
+    set16 PC pc cpu, 10
 
 // CALL if P flag is not set
 let cpo address cpu memory =
@@ -207,8 +197,7 @@ let cpo address cpu memory =
         call address cpu memory
     else
         incPC 3us cpu
-        |> incWC 11
-        |> fun cpu -> cpu, memory
+        |> fun cpu -> cpu, memory, 11
 
 // RET if Even (Partity flag set)
 let rpe cpu memory =
@@ -220,10 +209,9 @@ let rpe cpu memory =
 
         set16 PC pc cpu
         |> set16 SP (cpu.SP + 2us)
-        |> incWC 11
+        |> fun cpu -> cpu, 11
     else
-        incPC 1us cpu
-        |> incWC 5
+        incPC 1us cpu, 5
 
 // JUMP to address if Even (Parity flag set)
 let jpe address cpu =
@@ -233,8 +221,7 @@ let jpe address cpu =
         else
             cpu.PC + 3us
 
-    set16 PC pc cpu
-    |> incWC 10
+    set16 PC pc cpu, 10
 
 // CALL if Even (Parity flag set)
 let cpe address cpu memory =
@@ -243,8 +230,7 @@ let cpe address cpu memory =
         call address cpu memory
     else
         incPC 3us cpu
-        |> incWC 11
-        |> fun cpu -> cpu, memory
+        |> fun cpu -> cpu, memory, 11
 
 // RET if positive (S flag not set)
 let rp cpu memory =
@@ -255,11 +241,9 @@ let rp cpu memory =
         }
 
         set16 PC pc cpu
-        |> set16 SP (cpu.SP + 2us)
-        |> incWC 11
+        |> set16 SP (cpu.SP + 2us), 11
     else
-        incPC 1us cpu
-        |> incWC 5
+        incPC 1us cpu, 5
 
 // JUMP to address if Positive (Sign flag not set)
 let jp address cpu =
@@ -269,8 +253,7 @@ let jp address cpu =
         else
             cpu.PC + 3us
 
-    set16 PC pc cpu
-    |> incWC 10
+    set16 PC pc cpu, 10
 
 // CALL if Positive (Sign flag not set)
 let cp address cpu memory =
@@ -279,8 +262,7 @@ let cp address cpu memory =
         call address cpu memory
     else
         incPC 3us cpu
-        |> incWC 11
-        |> fun cpu -> cpu, memory
+        |> fun cpu -> cpu, memory, 11
 
 // RET if minus (S flag set)
 let rm cpu memory =
@@ -291,11 +273,9 @@ let rm cpu memory =
         }
 
         set16 PC pc cpu
-        |> set16 SP (cpu.SP + 2us)
-        |> incWC 11
+        |> set16 SP (cpu.SP + 2us), 11
     else
-        incPC 1us cpu
-        |> incWC 5
+        incPC 1us cpu, 5
 
 // JUMP to address if Minus (Sign flag set)
 let jm address cpu =
@@ -305,8 +285,7 @@ let jm address cpu =
         else
             cpu.PC + 3us
 
-    set16 PC pc cpu
-    |> incWC 10
+    set16 PC pc cpu, 10
 
 // CALL if Minus (Sign flag set)
 let cm address cpu memory =
@@ -315,5 +294,4 @@ let cm address cpu memory =
         call address cpu memory
     else
         incPC 3us cpu
-        |> incWC 11
-        |> fun cpu -> cpu, memory
+        |> fun cpu -> cpu, memory, 11

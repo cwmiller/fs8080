@@ -8,8 +8,7 @@ open Fs8080.Memory
 let inx register cpu =
     (get16 register cpu) + 1us
     |> fun value -> set16 register value cpu
-    |> incPC 1us
-    |> incWC 5
+    |> incPC 1us, 5
 
 // Increment value in 8bit register
 let inr register cpu =
@@ -17,8 +16,7 @@ let inr register cpu =
             
     set8 register value cpu
     |> flagSZAP value
-    |> incPC 1us
-    |> incWC 5
+    |> incPC 1us, 5
 
 // Decrement value in 8bit register
 let dcr register cpu =
@@ -26,13 +24,11 @@ let dcr register cpu =
 
     set8 register value cpu
     |> flagSZAP value
-    |> incPC 1us
-    |> incWC 5
+    |> incPC 1us, 5
 
 // TODO
 let daa cpu =
-    incPC 1us cpu
-    |> incWC 4
+    incPC 1us cpu, 4
 
 // Rotate A left
 let rlc cpu = 
@@ -44,8 +40,7 @@ let rlc cpu =
         if highbit = 1uy // Set C flag to previous high bit
         then { cpu with FLAGS = cpu.FLAGS ||| FlagMask.C; }
         else { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.C; }
-    |> incPC 1us
-    |> incWC 4     
+    |> incPC 1us, 4 
 
 // Add value in 16bit register to HL
 let dad register cpu =
@@ -57,15 +52,13 @@ let dad register cpu =
         if sum < existing // Set Carry flag if new value overflowed
         then { cpu with FLAGS = cpu.FLAGS ||| FlagMask.C; }         
         else { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.C; }
-    |> incPC 1us
-    |> incWC 10
+    |> incPC 1us, 10
 
 // Decrement 16bit register
 let dcx register cpu =
     get16 register cpu
     |> fun value -> set16 register (value - 1us) cpu
-    |> incPC 1us
-    |> incWC 5
+    |> incPC 1us, 5
 
 // Rotate A right
 let rrc cpu =
@@ -79,8 +72,7 @@ let rrc cpu =
         if lowbit = 1uy // Set C flag to previous low bit
         then { cpu with FLAGS = cpu.FLAGS ||| FlagMask.C; }
         else { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.C; }
-    |> incPC 1us
-    |> incWC 4  
+    |> incPC 1us, 4
 
 // Rotate A left through carry
 let ral cpu =
@@ -95,8 +87,7 @@ let ral cpu =
         if highbit = 1uy // Set C flag to previous high bit
         then { cpu with FLAGS = cpu.FLAGS ||| FlagMask.C; }
         else { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.C; }
-    |> incPC 1us
-    |> incWC 4   
+    |> incPC 1us, 4
 
 // Rotate A right through carry
 let rar cpu =
@@ -112,47 +103,43 @@ let rar cpu =
         if lowbit = 1uy // Set C flag to previous low bit
         then { cpu with FLAGS = cpu.FLAGS ||| FlagMask.C; }
         else { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.C; }
-    |> incPC 1us
-    |> incWC 4  
+    |> incPC 1us, 4
 
 // Set A to NOT A
 let cma cpu =
     { cpu with A = ~~~cpu.A; }
-    |> incPC 1us
-    |> incWC 4
+    |> incPC 1us, 4
 
 // Increment value in memory pointed to by HL 
 let inr_m cpu memory =
     let address = (get16 HL cpu)
     let value = (fetch address.Value memory) + 1uy
+    let memory = store address.Value value memory
             
     flagSZAP value cpu
     |> incPC 1us
-    |> incWC 10
-    |> fun cpu -> cpu, (store address.Value value memory)
+    |> fun cpu -> cpu, memory, 10
 
 
 // Decrement value in memory pointed to by HL 
 let dcr_m cpu memory =
     let address = (get16 HL cpu)
     let value = (fetch address.Value memory) - 1uy
+    let memory = store address.Value value memory
             
     flagSZAP value cpu
     |> incPC 1us
-    |> incWC 10
-    |> fun cpu -> cpu, (store address.Value value memory)
+    |> fun cpu -> cpu, memory, 10
 
 // Enables the C flag
 let stc cpu =
     { cpu with FLAGS = cpu.FLAGS ||| FlagMask.C }
-    |> incPC 1us
-    |> incWC 4
+    |> incPC 1us, 4
 
 // Set the C flag to NOT C
 let cmc cpu =
     { cpu with FLAGS = cpu.FLAGS ^^^ FlagMask.C }
-    |> incPC 1us
-    |> incWC 4
+    |> incPC 1us, 4
 
 // Increment A by 8bit register
 let add register cpu =
@@ -162,8 +149,7 @@ let add register cpu =
     set8 A sum cpu
     |> flagSZAP sum
     |> flagCForAdd existing sum
-    |> incPC 1us
-    |> incWC 4
+    |> incPC 1us, 4
 
 // Increment A by value in address in HL
 let add_m cpu memory =
@@ -174,8 +160,7 @@ let add_m cpu memory =
     set8 A sum cpu
     |> flagSZAP sum
     |> flagCForAdd existing sum
-    |> incPC 1us
-    |> incWC 7
+    |> incPC 1us, 7
 
 // Increment A by register and Carry
 let adc register cpu =
@@ -185,8 +170,7 @@ let adc register cpu =
     set8 A sum cpu
     |> flagSZAP sum
     |> flagCForAdd existing sum
-    |> incPC 1us
-    |> incWC 4
+    |> incPC 1us, 4
 
 // Increment A by value in address in HL and Carry
 let adc_m cpu memory =
@@ -197,8 +181,7 @@ let adc_m cpu memory =
     set8 A sum cpu
     |> flagSZAP sum
     |> flagCForAdd existing sum
-    |> incPC 1us
-    |> incWC 7
+    |> incPC 1us, 7
 
 // Decrement A by value in register
 let sub register cpu =
@@ -208,8 +191,7 @@ let sub register cpu =
     set8 A diff cpu
     |> flagSZAP diff
     |> flagCForSub existing diff
-    |> incPC 1us
-    |> incWC 4
+    |> incPC 1us, 4
 
 // Decrement A by value pointed to by HL
 let sub_m cpu memory =
@@ -223,8 +205,7 @@ let sub_m cpu memory =
     set8 A diff cpu
     |> flagSZAP diff
     |> flagCForSub existing diff
-    |> incPC 1us
-    |> incWC 7
+    |> incPC 1us, 7
 
 // Decrement A by value in register with borrow
 let sbb register cpu =
@@ -234,8 +215,7 @@ let sbb register cpu =
     set8 A diff cpu
     |> flagSZAP diff
     |> flagCForSub existing diff
-    |> incPC 1us
-    |> incWC 4
+    |> incPC 1us, 4
 
 // Decrement A by value in memory pointed to by HL and borrow
 let sbb_m cpu memory =
@@ -249,8 +229,7 @@ let sbb_m cpu memory =
     set8 A diff cpu
     |> flagSZAP diff
     |> flagCForSub existing diff
-    |> incPC 1us
-    |> incWC 7
+    |> incPC 1us, 7
 
 // A = A AND register
 let ana register cpu =
@@ -261,8 +240,7 @@ let ana register cpu =
     set8 A value cpu
     |> flagSZAP value
     |> fun cpu -> { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.C } // Always clear carry
-    |> incPC 1us
-    |> incWC 4
+    |> incPC 1us, 4
 
 // A = A AND (HL)
 let ana_m cpu memory =
@@ -274,8 +252,7 @@ let ana_m cpu memory =
     set8 A value cpu
     |> flagSZAP value
     |> fun cpu -> { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.C } // Always clear carry
-    |> incPC 1us
-    |> incWC 7
+    |> incPC 1us, 7
 
 // A = A XOR register
 let xra register cpu =
@@ -286,8 +263,7 @@ let xra register cpu =
     set8 A value cpu
     |> flagSZAP value
     |> fun cpu -> { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.C } // Always clear carry
-    |> incPC 1us
-    |> incWC 4
+    |> incPC 1us, 4
 
 // A = A XOR (HL)
 let xra_m cpu memory =
@@ -299,8 +275,7 @@ let xra_m cpu memory =
     set8 A value cpu
     |> flagSZAP value
     |> fun cpu -> { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.C } // Always clear carry
-    |> incPC 1us
-    |> incWC 7
+    |> incPC 1us, 7
 
 // A = A OR register
 let ora register cpu =
@@ -311,8 +286,7 @@ let ora register cpu =
     set8 A value cpu
     |> flagSZAP value
     |> fun cpu -> { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.C } // Always clear carry
-    |> incPC 1us
-    |> incWC 4
+    |> incPC 1us, 4
 
 // A = A OR (HL)
 let ora_m cpu memory =
@@ -324,8 +298,7 @@ let ora_m cpu memory =
     set8 A value cpu
     |> flagSZAP value
     |> fun cpu -> { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.C } // Always clear carry
-    |> incPC 1us
-    |> incWC 7
+    |> incPC 1us, 7
 
 // A = A AND byte
 let ani byte cpu =
@@ -334,8 +307,7 @@ let ani byte cpu =
     set8 A value cpu
     |> flagSZAP value
     |> fun cpu -> { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.C } // Always clear carry
-    |> incPC 2us
-    |> incWC 7
+    |> incPC 2us, 7
 
 // Compare register to A
 let cmp register cpu =
@@ -344,8 +316,7 @@ let cmp register cpu =
 
     flagSZAP diff cpu
     |> flagCForSub cpu.A diff
-    |> incPC 1us
-    |> incWC 4
+    |> incPC 1us, 4
 
 // Compare (HL) to A
 let cmp_m cpu memory =
@@ -357,8 +328,7 @@ let cmp_m cpu memory =
     
     flagSZAP diff cpu
     |> flagCForSub cpu.A diff
-    |> incPC 1us
-    |> incWC 7
+    |> incPC 1us, 7
 
 // A = A + byte
 let adi byte cpu =
@@ -367,8 +337,7 @@ let adi byte cpu =
     set8 A sum cpu
     |> flagSZAP sum
     |> flagCForAdd cpu.A sum
-    |> incPC 2us
-    |> incWC 7
+    |> incPC 2us, 7
 
 // A = A + byte with Carry
 let aci byte cpu =
@@ -377,8 +346,7 @@ let aci byte cpu =
     set8 A sum cpu
     |> flagSZAP sum
     |> flagCForAdd cpu.A sum
-    |> incPC 2us
-    |> incWC 7
+    |> incPC 2us, 7
 
 // A = A - byte
 let sui byte cpu =
@@ -387,8 +355,7 @@ let sui byte cpu =
     set8 A diff cpu
     |> flagSZAP diff
     |> flagCForAdd cpu.A diff
-    |> incPC 2us
-    |> incWC 7
+    |> incPC 2us, 7
 
 // A = A - byte with Borrow
 let sbi byte cpu =
@@ -397,8 +364,7 @@ let sbi byte cpu =
     set8 A diff cpu
     |> flagSZAP diff
     |> flagCForAdd cpu.A diff
-    |> incPC 2us
-    |> incWC 7
+    |> incPC 2us, 7
 
 // A = A XOR byte
 let xri byte cpu =
@@ -407,8 +373,7 @@ let xri byte cpu =
     set8 A result cpu
     |> flagSZAP result
     |> fun cpu -> { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.C } // Always clear carry
-    |> incPC 2us
-    |> incWC 7
+    |> incPC 2us, 7
 
 // A = A OR byte
 let ori byte cpu =
@@ -417,8 +382,7 @@ let ori byte cpu =
     set8 A result cpu
     |> flagSZAP result
     |> fun cpu -> { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.C } // Always clear carry
-    |> incPC 2us
-    |> incWC 7
+    |> incPC 2us, 7
 
 // Compare A with byte
 let cpi byte cpu =
@@ -426,5 +390,4 @@ let cpi byte cpu =
 
     flagSZAP diff cpu
     |> flagCForSub cpu.A diff
-    |> incPC 2us
-    |> incWC 7
+    |> incPC 2us, 7
