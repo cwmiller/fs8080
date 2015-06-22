@@ -39,7 +39,7 @@ let ``HLT should set State to Halted`` () =
 
 // DI
 [<Test>]
-let ``DI should disable interupts`` () =
+let ``DI should disable interrupts`` () =
     { defaultCpu with INTE = true }
     |> di
     |> fun (cpu, _) -> cpu.INTE
@@ -47,8 +47,8 @@ let ``DI should disable interupts`` () =
 
 // EI
 [<Test>]
-let enable () =
+let ``EI should enable interrupts`` () =
     defaultCpu
-    |> di
+    |> ei
     |> fun (cpu, _) -> cpu.INTE
     |> should equal true
