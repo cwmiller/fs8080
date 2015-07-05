@@ -46,6 +46,18 @@ let ``DCR B while B contains 0x0F should decrement B to 0x0E`` () =
     |> fun (cpu, _) -> get8 B cpu
     |> should equal 0x0Euy
 
+// DAA
+[<Test>]
+let ``DAA while A contains 0x9B and both carry flags are not set should A to 0x01 and set both carry flags``() =
+    let (cpu, _) =
+        { defaultCpu with A = 0x9Buy; FLAGS = FlagMask.A ||| FlagMask.C }
+        |> daa
+
+    should equal 0x1 <| cpu.A
+    should equal FlagMask.A <| (cpu.FLAGS &&& FlagMask.A)
+    should equal FlagMask.C <| (cpu.FLAGS &&& FlagMask.C)
+
+
 // DAD
 [<Test>]
 let ``DAD D while HL contains 0xDEAD and DE contains 0xBEEF should set HL to 0x9D9C and set the C flag`` () = 

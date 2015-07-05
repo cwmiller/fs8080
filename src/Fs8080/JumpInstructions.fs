@@ -213,6 +213,12 @@ let rpe cpu memory =
     else
         incPC 1us cpu, 5
 
+// PC = HL
+let pchl cpu =
+    get16 HL cpu
+    |> fun hl -> set16 PC hl cpu
+    |> fun cpu -> cpu, 5
+
 // JUMP to address if Even (Parity flag set)
 let jpe address cpu =
     let pc = 

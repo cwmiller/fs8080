@@ -154,3 +154,9 @@ let push_psw cpu memory =
     { cpu with SP = cpu.SP - 2us }
     |> incPC 1us
     |> fun cpu -> (cpu, memory, 11)
+
+// SP = HL
+let sphl cpu =
+    get16 HL cpu
+    |> fun hl -> set16 SP hl cpu
+    |> fun cpu -> incPC 1us cpu, 5

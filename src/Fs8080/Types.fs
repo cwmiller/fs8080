@@ -172,6 +172,7 @@ type Instruction =
     | CPO of DWord
     | ANI of byte
     | RPE
+    | PCHL
     | JPE of DWord
     | XCHG
     | CPE of DWord
@@ -184,6 +185,7 @@ type Instruction =
     | PUSH_PSW
     | ORI of byte
     | RM
+    | SPHL
     | JM of DWord
     | EI
     | CM of DWord

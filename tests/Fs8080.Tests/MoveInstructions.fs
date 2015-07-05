@@ -203,3 +203,11 @@ let ``PUSH PSW while A is set to 0xBE and FLAGS is set to 0xEF should push 0xBEE
     fetch 0x000Eus memory |> should equal 0xEFuy
 
     fetch 0x000Fus memory |> should equal 0xBEuy
+
+// SPHL
+[<Test>]
+let ``SPHL while HL contains 0xBEEF should set SP to 0xBEEF`` () =
+    { defaultCpu with H = 0xBEuy; L = 0xEFuy; }
+    |> sphl
+    |> fun (cpu, _) -> get16 SP cpu
+    |> fun sp -> should equal 0xBEEF <| sp.Value

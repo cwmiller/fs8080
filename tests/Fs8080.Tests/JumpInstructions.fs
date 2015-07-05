@@ -343,6 +343,13 @@ let ``RPE while stack points to 0xBEEF and P flag is not set should not set PC t
     |> fun cpu -> rpe cpu memory
     |> fun (cpu, _) -> cpu.PC.Value |> should not' (equal 0xBEEF)
 
+// PCHL
+[<Test>]
+let ``PCHL while HL contains 0xBEEF should set PC to 0xBEEF`` () =
+    { defaultCpu with H = 0xBEuy; L = 0xEFuy }
+    |> pchl
+    |> fun (cpu, _) -> cpu.PC.Value |> should equal 0xBEEF
+
 // JPE
 [<Test>]
 let ``JPE 0xBEEF while P is set should set PC to 0xBEEF`` () =

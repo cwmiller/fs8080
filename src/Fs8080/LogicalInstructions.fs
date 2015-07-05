@@ -26,9 +26,33 @@ let dcr register cpu =
     |> flagSZAP value
     |> incPC 1us, 5
 
-// TODO
+// Decimal Adjust Accumulator
 let daa cpu =
-    incPC 1us cpu, 4
+    let step1 cpu =
+        if ((cpu.A &&& 0x0Fuy) > 9uy) || ((cpu.FLAGS &&& FlagMask.A) = FlagMask.A) then
+            let addition = cpu.A + 6uy
+
+            if addition > 0x0Fuy then
+                { cpu with FLAGS = cpu.FLAGS ||| FlagMask.A }
+            else 
+                { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.A }
+            |> fun cpu -> { cpu with A = addition  }
+        else cpu
+
+    let step2 cpu =
+        if ((cpu.A >>> 4) > 9uy) || (cpu.FLAGS &&& FlagMask.C) = FlagMask.C then
+            let addition = ((cpu.A >>> 4) + 6uy)
+
+            if addition > 0x0Fuy then
+                { cpu with FLAGS = cpu.FLAGS ||| FlagMask.C }
+            else
+                { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.C }
+            |> fun cpu -> { cpu with A = (addition <<< 4) ||| (cpu.A &&& 0x0Fuy); }
+        else cpu
+
+    step1 cpu
+    |> step2
+    |> fun cpu -> incPC 1us cpu, 4
 
 // Rotate A left
 let rlc cpu = 

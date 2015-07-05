@@ -118,7 +118,7 @@ type Emulator() =
             | 0x24uy -> Instruction.INR(H)          // H = H + 1
             | 0x25uy -> Instruction.DCR(H)          // H = H - 1
             | 0x26uy -> Instruction.MVI(H, ib)      // H = byte
-            | 0x27uy -> Instruction.DAA             // TODO
+            | 0x27uy -> Instruction.DAA             // Decimal Adjust Accumulator
             | 0x28uy -> Instruction.NOP             // Alternative for NOP (do not use)
             | 0x29uy -> Instruction.DAD(HL)         // HL = HL + HL
             | 0x2Auy -> Instruction.LHLD(iw)        // HL = (word)
@@ -312,7 +312,7 @@ type Emulator() =
             | 0xE6uy -> Instruction.ANI(ib)         // A = A AND byte
             | 0xE7uy -> Instruction.RST(4uy)        // RST 4
             | 0xE8uy -> Instruction.RPE             // RET if Even (Parity flag set)
-
+            | 0xE9uy -> Instruction.PCHL            // PC = HL
             | 0xEAuy -> Instruction.JPE(iw)         // JUMP to address if Even (Parity flag set)
             | 0xEBuy -> Instruction.XCHG            // Exchange HL and DE
             | 0xECuy -> Instruction.CPE(iw)         // CALL address if Even (Parity flag set)
@@ -328,13 +328,13 @@ type Emulator() =
             | 0xF6uy -> Instruction.ORI(ib)         // A = X OR byte
             | 0xF7uy -> Instruction.RST(6uy)        // RST 6
             | 0xF8uy -> Instruction.RM              // RET if minus (S flag set)
-
+            | 0xF9uy -> Instruction.SPHL            // SP = HL
             | 0xFAuy -> Instruction.JM(iw)          // JUMP to address if minus (S flag set)
             | 0xFBuy -> Instruction.EI              // Enable instructions
+            | 0xFCuy -> Instruction.CM(iw)          // CALL if minus (S flag set)
             | 0xFDuy -> Instruction.CALL(iw)        // Alternative for CALL (do not use)
             | 0xFEuy -> Instruction.CPI(ib)         // Compare byte to A
             | 0xFFuy -> Instruction.RST(7uy)        // RST 7
-
             | _ -> raise (UnknownInstruction(opcode))
 
     // Carries out the given instruction
@@ -437,6 +437,7 @@ type Emulator() =
                     | CPO(address) -> exm (cpo address)
                     | ANI(byte) -> ex (ani byte)
                     | RPE -> exrm rpe
+                    | PCHL -> ex pchl
                     | JPE(address) -> ex (jpe address)
                     | XCHG -> ex xchg
                     | CPE(address) -> exm (cpe address)
@@ -449,6 +450,7 @@ type Emulator() =
                     | PUSH_PSW -> exm push_psw
                     | ORI(byte) -> ex (ori byte)
                     | RM -> exrm rm
+                    | SPHL -> ex sphl
                     | JM(address) -> ex (jm address)
                     | EI -> ex ei
                     | CM(address) -> exm (cm address)
