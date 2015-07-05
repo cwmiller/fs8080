@@ -11,6 +11,14 @@ let hlt cpu =
     { cpu with State = State.Halted }
     |> incPC 1us, 7
 
+// Set A to input device's output
+let in' byte cpu =
+    { cpu with A = byte }
+    |> incPC 2us, 10
+
+let out cpu =
+    cpu |> incPC 2us, 10
+
 // Disable interrupts
 let di cpu =
     { cpu with INTE = false }

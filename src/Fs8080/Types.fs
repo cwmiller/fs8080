@@ -158,10 +158,12 @@ type Instruction =
     | ACI of byte 
     | RNC
     | JNC of DWord
+    | OUT of byte
     | CNC of DWord
     | SUI of byte
     | RC
     | JC of DWord
+    | IN of byte
     | CC of DWord
     | SBI of byte
     | RPO
@@ -191,4 +193,6 @@ type Memory = Map<uint16,byte>
 
 type System = Cpu * Memory
 
-exception UnknownInstruction of byte
+type InputDevice = (unit -> byte)
+
+type OutputDevice = (byte -> unit)

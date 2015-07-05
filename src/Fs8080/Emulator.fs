@@ -10,6 +10,9 @@ open Fs8080.JumpInstructions
 
 open System.Diagnostics
 
+exception UnknownInstruction of byte
+exception UnknownDevice of byte
+
 type Emulator() =
     let defaultCpu = {
         A = 0uy;
@@ -31,6 +34,10 @@ type Emulator() =
     let mutable currentCpu = defaultCpu
 
     let mutable interruptRequests = List.empty<Instruction>
+
+    let mutable inputDevices = Map.empty<byte, InputDevice>
+
+    let mutable outputDevices = Map.empty<byte, OutputDevice>
 
     let watch = new Stopwatch()
 
@@ -283,7 +290,7 @@ type Emulator() =
             | 0xD0uy -> Instruction.RNC             // RET if C flag not set
             | 0xD1uy -> Instruction.POP(DE)         // DE = POP stack
             | 0xD2uy -> Instruction.JNC(iw)         // Jump to address if C flag is not set
-
+            | 0xD3uy -> Instruction.OUT(ib)         // Send A to device
             | 0xD4uy -> Instruction.CNC(iw)         // CALL memory address if C flag is not set
             | 0xD5uy -> Instruction.PUSH(DE)        // PUSH DE to stack
             | 0xD6uy -> Instruction.SUI(ib)         // A = A - byte
@@ -291,6 +298,7 @@ type Emulator() =
             | 0xD8uy -> Instruction.RC              // RET if C flag is set
             | 0xD9uy -> Instruction.RET             // Alternative for RET (do not use)
             | 0xDAuy -> Instruction.JC(iw)          // JUMP to address if C flag is set
+            | 0xDBuy -> Instruction.IN(ib)          // A = device output
             | 0xDCuy -> Instruction.CC(iw)          // CALL address if C flag is set
             | 0xDDuy -> Instruction.CALL(iw)        // Alternative for CALL (do not use)
             | 0xDEuy -> Instruction.SBI(ib)         // A = A - byte with Borrow
@@ -411,10 +419,16 @@ type Emulator() =
                     | ACI(byte) -> ex (aci byte)
                     | RNC -> exrm rnc
                     | JNC(address) -> ex (jnc address)
+                    | OUT(device) -> 
+                        (ex out) 
+                        |> fun (cpu, memory, cycles) -> 
+                            (this.SetOutput device cpu.A)
+                            (cpu, memory, cycles)
                     | CNC(address) -> exm (cnc address)
                     | SUI(byte) -> ex (sui byte)
                     | RC -> exrm rc
                     | JC(address) -> ex (jc address)
+                    | IN(device) -> ex (in' (this.GetInput device))
                     | CC(address) -> exm (cc address)
                     | SBI(byte) -> ex (sbi byte)
                     | RPO -> exrm rpo
@@ -440,6 +454,18 @@ type Emulator() =
                     | CM(address) -> exm (cm address)
                     | CPI(byte) -> ex (cpi byte)
 
+    // Get byte from input device
+    member internal this.GetInput port =
+        if inputDevices.ContainsKey port
+        then (inputDevices.Item port)()
+        else raise (UnknownDevice(port))
+
+    // Push byte to output device
+    member internal this.SetOutput port value =
+        if outputDevices.ContainsKey port
+        then (outputDevices.Item port) value
+        else raise (UnknownDevice(port))
+
     // Get the next interrupt to be executed
     member internal this.TryInterrupt =
         match interruptRequests with
@@ -456,6 +482,14 @@ type Emulator() =
         if emuNano < cpuNano then 
             let ticks = (int64)((cpuNano - emuNano) * frequencyNano)
             while watch.ElapsedTicks < ticks do 0 |> ignore
+
+    // Attaches an input device to the specified port
+    member this.AttachInput (port: byte, device) =
+        inputDevices <- inputDevices.Add(port, device)
+
+    // Attaches an output device to the specified port
+    member this.AttachOutput (port, device) =
+        outputDevices <- outputDevices.Add(port, device)
            
     // Run the emulator
     member this.Run (memory:Memory) (pc: uint16) =
