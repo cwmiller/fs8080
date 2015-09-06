@@ -11,3 +11,9 @@ let fetch address (memory: Memory) =
 // Set a value in memory
 let store address (value:byte) (memory:Memory) =
     memory.Add(address, value)
+
+let rec fill (address: uint16) bytes (memory: Memory) =
+    match bytes with
+    | head :: tail -> fill (address + 1us) tail <| memory.Add(address, head)
+    | [] -> memory
+        

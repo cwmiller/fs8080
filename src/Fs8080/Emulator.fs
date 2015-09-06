@@ -65,7 +65,7 @@ type Emulator() =
     member this.Hz = 2000000.0
 
     // Determines the next instruction in memory
-    member internal this.FetchAndDecode (cpu, memory) =
+    member private this.FetchAndDecode (cpu, memory) =
         let opcode = fetch cpu.PC.Value memory
 
         // Gets the immediate bye following the instruction
@@ -339,7 +339,7 @@ type Emulator() =
 
     // Carries out the given instruction
     // Returns the post-execution state, memory, and number of cycles it took to complete the instruction
-    member internal this.Execute instruction (cpu, memory) =
+    member private this.Execute instruction (cpu, memory) =
         let ex f =
             f cpu
             |> fun (cpu, cycles) -> (cpu, memory, cycles)
@@ -457,19 +457,19 @@ type Emulator() =
                     | CPI(byte) -> ex (cpi byte)
 
     // Get byte from input device
-    member internal this.GetInput port =
+    member private this.GetInput port =
         if inputDevices.ContainsKey port
         then (inputDevices.Item port)()
         else raise (UnknownDevice(port))
 
     // Push byte to output device
-    member internal this.SetOutput port value =
+    member private this.SetOutput port value =
         if outputDevices.ContainsKey port
         then (outputDevices.Item port) value
         else raise (UnknownDevice(port))
 
     // Get the next interrupt to be executed
-    member internal this.TryInterrupt =
+    member private this.TryInterrupt =
         match interruptRequests with
                 | head::tail -> 
                     interruptRequests <- tail
@@ -477,7 +477,7 @@ type Emulator() =
                 | [] -> None
 
     // Wastes CPU time in attempt to match the emulated CPU's speed
-    member internal this.Wait cycles =
+    member private this.Wait cycles =
         let emuNano = (float)watch.ElapsedTicks / frequencyNano
         let cpuNano = (float)cycles / (this.Hz / 1000000.0)
 
@@ -494,7 +494,7 @@ type Emulator() =
         outputDevices <- outputDevices.Add(port, device)
            
     // Run the emulator
-    member this.Run (memory:Memory) (pc: uint16) =
+    member this.Run (memory:Memory, pc: uint16) =
         let cpu = { defaultCpu with PC = { High = 0uy; Low = 0uy; } + pc; State = Running };
 
         stopping <- false
