@@ -23,20 +23,20 @@ let defaultCpu = {
 
 [<Test>]
 let ``Setting 16 bit registers should affect 8 bit registers`` () =
-    let cpu = set16 BC { High = 0xAAuy; Low = 0xBBuy; } defaultCpu
+    let cpu = set16 RegBC { High = 0xAAuy; Low = 0xBBuy; } defaultCpu
 
-    get8 B cpu
+    get8 RegB cpu
     |> should equal 0xAAuy
 
-    get8 C cpu
+    get8 RegC cpu
     |> should equal 0xBBuy
 
 [<Test>]
 let ``Setting 8 bit registers should affect 16 bit registers`` () =
     defaultCpu
-    |> set8 B 0xAAuy
-    |> set8 C 0xBBuy
-    |> get16 BC
+    |> set8 RegB 0xAAuy
+    |> set8 RegC 0xBBuy
+    |> get16 RegBC
     |> should equal { High = 0xAAuy; Low = 0xBBuy; } 
     
 [<Test>]

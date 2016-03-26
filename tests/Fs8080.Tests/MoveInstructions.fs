@@ -26,7 +26,7 @@ let internal defaultCpu = {
 // LXI
 [<Test>]
 let ``LXI B, 0xFFF0 should load 0xFF into B and 0xF0 into C`` () =
-    let (cpu, _) = lxi BC { High = 0xFFuy; Low = 0xF0uy } defaultCpu
+    let (cpu, _) = lxi RegBC { High = 0xFFuy; Low = 0xF0uy } defaultCpu
 
     cpu.B |> should equal 0xFF
 
@@ -59,22 +59,22 @@ let ``LHLD 0xDEAD while memory address 0xDEAD contains 0xEF and 0xDEAE contains 
 [<Test>]
 let ``STAX B while A contains 0xFE and BC contains 0xAABB with should place value from A (0xFE) into memory address 0xAABB`` () =
     { defaultCpu with A = 0xFEuy; B = 0xAAuy; C = 0xBBuy; }
-    |> fun cpu -> stax BC cpu Map.empty
+    |> fun cpu -> stax RegBC cpu Map.empty
     |> fun (_, memory, _) -> memory.Item 0xAABBus 
     |> should equal 0xFE
 
 // MVI
 [<Test>]
 let ``MVI B, 255 should set B to 0xFF`` () =
-    mvi B 0xFFuy defaultCpu
-    |> fun (cpu, _) -> get8 B cpu
+    mvi RegB 0xFFuy defaultCpu
+    |> fun (cpu, _) -> get8 RegB cpu
     |> should equal 0xFFuy
 
 // LDAX
 [<Test>]
 let ``LDAX D when DE contains memory address 0xBEEF, containing the value 0xCC, should set A to 0xCC`` () =
     { defaultCpu with D = 0xBEuy; E = 0xEFuy }
-    |> fun cpu -> ldax DE cpu <| Map.empty.Add(0xBEEFus, 0xCCuy)
+    |> fun cpu -> ldax RegDE cpu <| Map.empty.Add(0xBEEFus, 0xCCuy)
     |> fun (cpu, _) -> cpu.A 
     |> should equal 0xCC
 
@@ -104,28 +104,28 @@ let ``LDA 0xBEEF while 0xBEEF contains 0xAB should set A to 0xAB`` () =
     let memory = [ (0x1us, 0xEFuy); (0x2us, 0xBEuy); (0xBEEFus, 0xABuy) ] |> Map.ofSeq
 
     lda { High = 0xBEuy; Low = 0xEFuy } defaultCpu memory
-    |> fun (cpu, _) -> get8 A cpu
+    |> fun (cpu, _) -> get8 RegA cpu
     |> should equal 0xAB
 
 // MOV
 [<Test>]
 let ``MOV B, C while C contains 0xAA should set B to 0xAA`` () =
     { defaultCpu with C = 0xAAuy; }
-    |> mov_r_r B C
-    |> fun (cpu, _) -> get8 B cpu
+    |> mov_r_r RegB RegC
+    |> fun (cpu, _) -> get8 RegB cpu
     |> should equal 0xAA
 
 [<Test>]
 let ``MOV C, M while HL contains address 0xDEAD, containing value 0xBE, should set C to 0xBE`` () =
     { defaultCpu with H = 0xDEuy; L = 0xADuy }
-    |> fun cpu -> mov_r_m C cpu <| Map.empty.Add (0xDEADus, 0xBEuy)
-    |> fun (cpu, _) -> get8 C cpu
+    |> fun cpu -> mov_r_m RegC cpu <| Map.empty.Add (0xDEADus, 0xBEuy)
+    |> fun (cpu, _) -> get8 RegC cpu
     |> should equal 0xBE
 
 [<Test>]
 let ``MOV M, C while HL contains address 0xDEAD and C contains 0xBE should set memory address 0xDEAD to 0xBE`` () =
     { defaultCpu with H = 0xDEuy; L = 0xADuy; C = 0xBEuy; }
-    |> fun cpu -> mov_m_r C cpu Map.empty
+    |> fun cpu -> mov_m_r RegC cpu Map.empty
     |> fun (_, memory, _) -> memory.Item 0xDEADus
     |> should equal 0xBE
 
@@ -135,15 +135,15 @@ let ``POP B while SP points to value 0xFF and SP+1 points to value 0xAA should s
     let memory = [ (0xBEEFus, 0xFFuy); (0xBEF0us, 0xAAuy) ] |> Map.ofSeq
 
     { defaultCpu with SP = { High = 0xBEuy; Low = 0xEFuy } }
-    |> fun cpu -> pop BC cpu memory
-    |> fun (cpu, _) -> (get16 BC cpu).Value
+    |> fun cpu -> pop RegBC cpu memory
+    |> fun (cpu, _) -> (get16 RegBC cpu).Value
     |> should equal 0xAAFF
 
 [<Test>]
 let ``POP B while SP equals 0xBEEF should set SP to 0xBEF1`` () =
     { defaultCpu with SP = { High = 0xBEuy; Low = 0xEFuy }}
-    |> fun cpu -> pop BC cpu <| Map.empty.Add (0xBEEFus, 0xFFuy)
-    |> fun (cpu, _) -> (get16 SP cpu).Value
+    |> fun cpu -> pop RegBC cpu <| Map.empty.Add (0xBEEFus, 0xFFuy)
+    |> fun (cpu, _) -> (get16 RegSP cpu).Value
     |> should equal 0xBEF1
 
 // PUSH
@@ -151,7 +151,7 @@ let ``POP B while SP equals 0xBEEF should set SP to 0xBEF1`` () =
 let ``PUSH B while B contains 0xBE and C contains 0xEF should set SP-2 to 0xEF and SP-1 to 0xBE`` () =
     let (_, memory, _) =
         { defaultCpu with SP = { High = 0xFFuy; Low = 0xFFuy }; B = 0xBEuy; C = 0xEFuy }
-        |> fun cpu -> push BC cpu Map.empty
+        |> fun cpu -> push RegBC cpu Map.empty
 
     fetch 0xFFFDus memory |> should equal 0xEF
 
@@ -160,7 +160,7 @@ let ``PUSH B while B contains 0xBE and C contains 0xEF should set SP-2 to 0xEF a
 [<Test>]
 let ``PUSH B while B should set SP tp SP-2`` () =
     { defaultCpu with SP = { High = 0xFFuy; Low = 0xFFuy }; B = 0xBEuy; C = 0xEFuy }
-    |> fun cpu -> push BC cpu Map.empty
+    |> fun cpu -> push RegBC cpu Map.empty
     |> fun (cpu, _, _) -> (cpu.SP.Value) 
     |> should equal 0xFFFD
 
@@ -170,20 +170,20 @@ let ``XTHL while SP points to 0xDEAD and HL contains 0xBEEF should set SP to 0xB
 
     { defaultCpu with SP = { High = 0x0uy; Low = 0x0uy; }; H = 0xBEuy; L = 0xEFuy; }
     |> fun cpu -> xthl cpu memory
-    |> fun (cpu, _, _) -> (get16 HL cpu).Value
+    |> fun (cpu, _, _) -> (get16 RegHL cpu).Value
     |> should equal 0xDEAD
 
 [<Test>]
 let ``XCHG while HL contains 0xDEAD and DE contains 0xBEEF should set DE to 0xDEAD and HL to 0xBEEF`` () =
     let (cpu, _) =
         defaultCpu
-        |> set16 HL { High = 0xDEuy; Low = 0xADuy }
-        |> set16 DE { High = 0xBEuy; Low = 0xEFuy }
+        |> set16 RegHL { High = 0xDEuy; Low = 0xADuy }
+        |> set16 RegDE { High = 0xBEuy; Low = 0xEFuy }
         |> xchg
 
-    (get16 HL cpu).Value |> should equal 0xBEEF 
+    (get16 RegHL cpu).Value |> should equal 0xBEEF 
 
-    (get16 DE cpu).Value |> should equal 0xDEAD
+    (get16 RegDE cpu).Value |> should equal 0xDEAD
 
 [<Test>]
 let ``POP PSW while SP points to 0xBEEF should set A to 0xBE and FLAGS to 0xEF`` () =
@@ -209,5 +209,5 @@ let ``PUSH PSW while A is set to 0xBE and FLAGS is set to 0xEF should push 0xBEE
 let ``SPHL while HL contains 0xBEEF should set SP to 0xBEEF`` () =
     { defaultCpu with H = 0xBEuy; L = 0xEFuy; }
     |> sphl
-    |> fun (cpu, _) -> get16 SP cpu
+    |> fun (cpu, _) -> get16 RegSP cpu
     |> fun sp -> should equal 0xBEEF <| sp.Value

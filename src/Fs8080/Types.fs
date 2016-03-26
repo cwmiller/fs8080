@@ -41,62 +41,89 @@ type DWord =
         then { High = (Array.get bytes 1); Low = (Array.get bytes 0); }
         else { High = (Array.get bytes 0); Low = (Array.get bytes 1); }
 
+
 // List of 8bit registers
-type Register8 =
-    | A
-    | B
-    | C
-    | D
-    | E
-    | H
-    | L
-    | FLAGS
+and Register8 =
+    | RegA
+    | RegB
+    | RegC
+    | RegD
+    | RegE
+    | RegH
+    | RegL
+    | RegFLAGS
+
 
 // List of 16bit registers
-type Register16 =
-    | AF
-    | BC
-    | DE
-    | HL
-    | SP
-    | PC
+and Register16 =
+    | RegAF
+    | RegBC
+    | RegDE
+    | RegHL
+    | RegSP
+    | RegPC
+
 
 // Bitmasks used for setting/getting bits on FLAGS register
-type FlagMask = 
+and FlagMask = 
     static member S = 0x80uy
     static member Z = 0x40uy
     static member A = 0x10uy
     static member P = 0x04uy
     static member C = 0x01uy
 
-type State =
+
+and State =
     | Stopped
     | Running
     | Halted
 
+
 // Represents the CPU's current state
-type Cpu = {
-    // Registers
-    A: byte;
-    B: byte;
-    C: byte;
-    D: byte;
-    E: byte;
-    H: byte;
-    L: byte;
-    SP: DWord;
-    PC: DWord;
-    FLAGS: byte;
+and Cpu = 
+    {
+        // Registers
+        A: byte;
+        B: byte;
+        C: byte;
+        D: byte;
+        E: byte;
+        H: byte;
+        L: byte;
+        SP: DWord;
+        PC: DWord;
+        FLAGS: byte;
 
-    // Interrupts enabled or disabled
-    INTE: bool;
+        // Interrupts enabled or disabled
+        INTE: bool;
 
-    // Running state
-    State: State
-}
+        // Running state
+        State: State 
+    }
+
+    // Getters for easy reading of 16bit registers and flags
+    member this.AF = { High = this.A; Low = this.FLAGS }
+    member this.BC = { High = this.B; Low = this.C }
+    member this.DE = { High = this.D; Low = this.E }
+    member this.HL = { High = this.H; Low = this.L }
+
+    member this.FlagS = (this.FLAGS &&& FlagMask.S) = FlagMask.S
+    member this.FlagZ = (this.FLAGS &&& FlagMask.Z) = FlagMask.Z
+    member this.FlagA = (this.FLAGS &&& FlagMask.A) = FlagMask.A
+    member this.FlagP = (this.FLAGS &&& FlagMask.P) = FlagMask.P
+    member this.FlagC = (this.FLAGS &&& FlagMask.C) = FlagMask.C
+
+
+and Flag = 
+    | FlagS
+    | FlagZ
+    | FlagA
+    | FlagP
+    | FlagC
+
 
 // List of supported instructions
-type Instruction =
+and Instruction =
     | NOP
     | LXI of Register16 * DWord
     | STAX of Register16
@@ -191,10 +218,11 @@ type Instruction =
     | CM of DWord
     | CPI of byte
 
-type Memory = Map<uint16,byte>
 
-type System = Cpu * Memory
+and Memory = Map<uint16,byte>
 
-type InputDevice = (unit -> byte)
+and System = Cpu * Memory
 
-type OutputDevice = (byte -> unit)
+and InputDevice = (unit -> byte)
+
+and OutputDevice = (byte -> unit)

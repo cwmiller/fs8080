@@ -5,95 +5,119 @@ open Fs8080.Types
 // Gets the value of an 8bit register
 let get8 register cpu = 
     match register with
-        | A -> cpu.A
-        | B -> cpu.B
-        | C -> cpu.C
-        | D -> cpu.D
-        | E -> cpu.E
-        | H -> cpu.H
-        | L -> cpu.L
-        | FLAGS -> cpu.FLAGS
+    | RegA -> cpu.A
+    | RegB -> cpu.B
+    | RegC -> cpu.C
+    | RegD -> cpu.D
+    | RegE -> cpu.E
+    | RegH -> cpu.H
+    | RegL -> cpu.L
+    | RegFLAGS -> cpu.FLAGS
+
 
 // Gets the value of a 16bit register
 let get16 register cpu = 
     match register with
-        | AF -> { High = cpu.A; Low = cpu.FLAGS }
-        | BC -> { High = cpu.B; Low = cpu.C }
-        | DE -> { High = cpu.D; Low = cpu.E }
-        | HL -> { High = cpu.H; Low = cpu.L }
-        | SP -> cpu.SP
-        | PC -> cpu.PC
+    | RegAF -> { High = cpu.A; Low = cpu.FLAGS }
+    | RegBC -> { High = cpu.B; Low = cpu.C }
+    | RegDE -> { High = cpu.D; Low = cpu.E }
+    | RegHL -> { High = cpu.H; Low = cpu.L }
+    | RegSP -> cpu.SP
+    | RegPC -> cpu.PC
+
 
 // Sets the value of an 8bit register
 let set8 register value cpu =
     match register with
-        | A -> { cpu with A = value }
-        | B -> { cpu with B = value }
-        | C -> { cpu with C = value }
-        | D -> { cpu with D = value }
-        | E -> { cpu with E = value }
-        | H -> { cpu with H = value }
-        | L -> { cpu with L = value }
-        | FLAGS -> { cpu with FLAGS = value }
+    | RegA -> { cpu with A = value }
+    | RegB -> { cpu with B = value }
+    | RegC -> { cpu with C = value }
+    | RegD -> { cpu with D = value }
+    | RegE -> { cpu with E = value }
+    | RegH -> { cpu with H = value }
+    | RegL -> { cpu with L = value }
+    | RegFLAGS -> { cpu with FLAGS = value }
+
 
 // Sets the value of a 16bit register
 let set16 register (value: DWord) cpu =
     match register with
-        | AF -> { cpu with A = value.High; FLAGS = value.Low; }
-        | BC -> { cpu with B = value.High; C = value.Low; }
-        | DE -> { cpu with D = value.High; E = value.Low; }
-        | HL -> { cpu with H = value.High; L = value.Low; }
-        | SP -> { cpu with SP = value; }
-        | PC -> { cpu with PC = value; }
+    | RegAF -> { cpu with A = value.High; FLAGS = value.Low; }
+    | RegBC -> { cpu with B = value.High; C = value.Low; }
+    | RegDE -> { cpu with D = value.High; E = value.Low; }
+    | RegHL -> { cpu with H = value.High; L = value.Low; }
+    | RegSP -> { cpu with SP = value; }
+    | RegPC -> { cpu with PC = value; }
+
 
 // Copy the value from one 8bit register to another
 let copy8 src dest cpu =
     get8 src cpu
     |> fun value -> set8 dest value cpu
 
+
 // Increment PC register
 let incPC (amt: uint16) cpu = 
     { cpu with PC = cpu.PC + amt }
 
+
+let flagMask = function
+    | FlagS -> FlagMask.S
+    | FlagZ -> FlagMask.Z
+    | FlagA -> FlagMask.A
+    | FlagP -> FlagMask.P
+    | FlagC -> FlagMask.C
+
+
+// Flag/unflag a bit in FLAGS
+let setFlag flag enabled cpu =
+    let mask = flagMask flag
+
+    if enabled = true
+    then { cpu with FLAGS = cpu.FLAGS ||| mask }
+    else { cpu with FLAGS = cpu.FLAGS &&& ~~~mask }
+
+
+// Get the status of a bit in FLAGS
+let getFlag flag cpu =
+    let mask = flagMask flag
+
+    ((cpu.FLAGS &&& mask) = mask)
+
+
 // Set S flag based on value
-let flagS (value: byte) cpu =
-    if (value &&& 0x80uy) > 0uy
-    then { cpu with FLAGS = cpu.FLAGS ||| FlagMask.S }
-    else { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.S }
+let flagS value =
+    setFlag FlagS ((value &&& 0x80uy) > 0uy)
+
 
 // Set Z flag based on value
-let flagZ (value: byte) cpu = 
-    if value = 0uy 
-    then { cpu with FLAGS = cpu.FLAGS ||| FlagMask.Z; }
-    else { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.Z; }
+let flagZ value = 
+    setFlag FlagZ (value = 0uy)
+
 
 // Set P flag based on value
-let flagP (value: byte) cpu =
+let flagP value =
     let cnt = 
         [0..7]
         |> List.fold (fun acc idx -> acc + (value >>> idx) &&& 0x1uy) 0uy
 
-    if cnt % 2uy = 0uy
-    then { cpu with FLAGS = cpu.FLAGS ||| FlagMask.P; }
-    else { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.P; }
+    setFlag FlagP (cnt % 2uy = 0uy)
+
 
 // Set A flag based on value
-let flagA (value: byte) cpu =
-    if (value &&& 0x0Fuy) = 0uy
-    then { cpu with FLAGS = cpu.FLAGS ||| FlagMask.A; }
-    else { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.A; }
+let flagA value =
+    setFlag FlagA ((value &&& 0x0Fuy) = 0uy)
+
 
 // Set C flag based on addition result (flag is set is addition overflows)
-let flagCForAdd (previousValue: byte) (value: byte) cpu =
-    if (value < previousValue)
-    then { cpu with FLAGS = cpu.FLAGS ||| FlagMask.C; }
-    else { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.C; }
+let flagCForAdd (previousValue: byte) (value: byte) =
+    setFlag FlagC (value < previousValue)
+
 
 // Set C flag based on subtraction result (flag is set is addition overflows)
-let flagCForSub (previousValue: byte) (value: byte) cpu =
-    if (value > previousValue)
-    then { cpu with FLAGS = cpu.FLAGS ||| FlagMask.C; }
-    else { cpu with FLAGS = cpu.FLAGS &&& ~~~FlagMask.C; }
+let flagCForSub (previousValue: byte) (value: byte) =
+    setFlag FlagC (value > previousValue)
+
 
 // Set S, Z, A, and P flags based on value
 let flagSZAP (value: byte) cpu =
